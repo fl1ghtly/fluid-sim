@@ -7,7 +7,11 @@ int main(void) {
 	auto window = sf::RenderWindow(sf::VideoMode({1920u, 1080u}), "CMake SFML Project");
     window.setFramerateLimit(144);
 	
-	Fluid fluid(1920, 1080, 100, 5);
+    constexpr float radius = 5.f;
+    constexpr int numParticles = 100;
+
+	Fluid fluid(1920, 1080, numParticles, radius);
+	fluid.initializeParticleGrid(0, 0, 1, 10, 10);
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())
@@ -17,8 +21,18 @@ int main(void) {
                 window.close();
             }
         }
-
+        
+		std::vector<Vector2f> pos = fluid.getPosition();
+        
         window.clear();
+
+        for (auto p : pos) {
+            sf::CircleShape shape(radius);
+            shape.setFillColor(sf::Color(0, 0, 255));
+            shape.setPosition({p.x, p.y});
+            window.draw(shape);
+        }
+        
         window.display();
     }
 }
