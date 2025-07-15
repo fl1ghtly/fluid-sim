@@ -6,10 +6,17 @@
 constexpr Vector2f VecDown = Vector2f(0.f, 1.f);
 
 Fluid::Fluid(int width, int height, int numParticles, float particleRadius, float density) 
-	: width(width), height(height), numParticles(numParticles),
-	  radius(particleRadius), fluidDensity(density), position(numParticles), 
-	  velocity(numParticles), mass(numParticles), density(numParticles), 
-	  pressure(numParticles)
+	: width(width), 
+	  height(height), 
+	  numParticles(numParticles),
+	  radius(particleRadius), 
+	  fluidDensity(density), 
+	  position(numParticles), 
+	  velocity(numParticles), 
+	  mass(numParticles), 
+	  density(numParticles), 
+	  pressure(numParticles),
+	  neighbors(numParticles)
 {
 	smoothingLen = 2.f * radius;
 }
@@ -281,6 +288,11 @@ Vector2f Fluid::laplacian(int particleIndex, std::vector<Vector2f> field) {
 std::vector<Vector2f> Fluid::getPosition() {
 	return position;
 }
+
+std::vector<Vector2f> Fluid::getVelocity() {
+	return velocity;
+}
+
 
 float Fluid::smoothingKernel(float dist, float smoothingLength) {
 	if (dist < 0 || dist > smoothingLength) return 0.f;

@@ -21,6 +21,7 @@ class Fluid {
 		std::vector<float> pressure;
 		float smoothingLen;
 		std::unordered_map<GridCell, std::vector<int>> spatialGrid;
+		std::vector<std::vector<int>> neighbors;
 
 		void initializeParticleValues();
 		void calculateDensity();
@@ -33,7 +34,7 @@ class Fluid {
 		float calculateVmax();
 		float calculateTimeStep();
 		void buildSpatialGrid();
-		std::vector<int> findNeighbors(int particleIndex);
+		void findNeighbors();
 		float smoothingKernel(float dist, float smoothingLength);
 		Vector2f smoothingGradient(Vector2f r, float smoothingLength);
 		template <typename T>
@@ -44,6 +45,7 @@ class Fluid {
 		Fluid(int width, int heigh, int numParticles, float particleRadius, float density);
 		void update();
 		std::vector<Vector2f> getPosition();
+		std::vector<Vector2f> getVelocity();
 		void initializeParticleGrid(int x, int y, int width, int height);
 		void initializeParticleRandom();
 };

@@ -29,6 +29,10 @@ struct Vector2f {
 		return *this;
 	}
 
+	bool operator<(const Vector2f rhs) const {
+		return this->magnitude() < rhs.magnitude();
+	}
+
 	Vector2f normalize() const;
 	float magnitude() const;
 	float dot(const Vector2f&) const;

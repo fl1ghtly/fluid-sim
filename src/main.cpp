@@ -2,18 +2,19 @@
 #include <SFML/Graphics.hpp>
 #include "fluid.h"
 #include "Vector2f.h"
+#include "ParticleSystem.h"
 
 int main(void) {
     constexpr int width = 1920;
     constexpr int height = 1080;
     constexpr float radius = 5.f;
     constexpr float fluidDensity = 1000.f;
-    constexpr int numParticles = 1000;
+    constexpr int numParticles = 10000;
 
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation");
     window.setFramerateLimit(144);
-	
-
+    
+    ParticleSystem particles(numParticles);
 	Fluid fluid(width, height, numParticles, radius, fluidDensity);
 	// fluid.initializeParticleGrid(0, 0, 1000, 5);
     fluid.initializeParticleRandom();
@@ -28,16 +29,11 @@ int main(void) {
         }
         
 		std::vector<Vector2f> pos = fluid.getPosition();
+		std::vector<Vector2f> vel = fluid.getVelocity();
+        particles.update(pos, vel);
         
         window.clear();
-        
-        for (auto p : pos) {
-            sf::CircleShape shape(radius);
-            shape.setFillColor(sf::Color(0, 0, 255));
-            shape.setPosition({p.x, p.y});
-            window.draw(shape);
-        }
-        
+        window.draw(particles);
         window.display();
         fluid.update();
     }
