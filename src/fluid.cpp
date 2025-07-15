@@ -56,9 +56,10 @@ void Fluid::update() {
 	// float deltaTime = 0.4 * smoothingLen / (calculateVmax() + 1E-6);
 	// float deltaTime = calculateTimeStep();
 	float deltaTime = 0.1f;
-	printf("pos (%f, %f) vel (%f, %f)\n", position[0].x, position[0].y, velocity[0].x, velocity[0].y);
-	printf("dens %f press %f\n", density[0], pressure[0]); 
+	// printf("pos (%f, %f) vel (%f, %f)\n", position[0].x, position[0].y, velocity[0].x, velocity[0].y);
+	// printf("dens %f press %f\n", density[0], pressure[0]); 
 	buildSpatialGrid();
+	findNeighbors();
 	calculateDensity();
 	calculatePressure();
 	applyNonPressureForce(deltaTime);
@@ -85,8 +86,8 @@ std::vector<float> Fluid::calculateAlphaFactors() {
 void Fluid::calculateDensity() {
 	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
-		std::vector<int> neighbors = findNeighbors(i);
-		for (auto j : neighbors) {
+		// std::vector<int> neighbors = findNeighbors(i);
+		for (auto j : neighbors[i]) {
 			// if (i == j) continue;
 			float dist = (position[i] - position[j]).magnitude();
 			float influence = smoothingKernel(dist, smoothingLen);
@@ -108,7 +109,7 @@ void Fluid::applyNonPressureForce(float dt) {
 	for (int i = 0; i < numParticles; i++) {
 		Vector2f Force = {0.f, 0.f};
 		// Force due to gravity
-		Force += VecDown * GRAVITY * mass[i];
+		// Force += VecDown * GRAVITY * mass[i];
 		// Force due to pressure
 		const Vector2f grad = gradient(i, pressure);
 		Force += -mass[i] / density[i] * grad;
@@ -116,9 +117,9 @@ void Fluid::applyNonPressureForce(float dt) {
 		const Vector2f lap = laplacian(i, velocity);
 		Force += mass[i] * viscosity * laplacian(i, velocity);
 		
-		if (std::isnan(Force.x) || std::isnan(Force.y)) {
-			printf("grad (%f, %f)\n", grad.x, grad.y);
-		}
+		// if (std::isnan(Force.x) || std::isnan(Force.y)) {
+		// 	printf("grad (%f, %f)\n", grad.x, grad.y);
+		// }
 		velocity[i] += dt * Force / mass[i];
 		position[i] += dt * velocity[i];
 	}
@@ -210,39 +211,41 @@ void Fluid::buildSpatialGrid() {
 	const float cellSize = smoothingLen;
 
 	spatialGrid.clear();
+	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		GridCell c = {position[i], cellSize};
 		spatialGrid[c].push_back(i);
 	}
 }
 
-std::vector<int> Fluid::findNeighbors(int particleIndex) {
+void Fluid::findNeighbors() {
 	const float cellSize = smoothingLen;
-	std::vector<int> neighborIndices;
-
-	GridCell center = {position[particleIndex], cellSize};
-
-	for (int dx = -1; dx <= 1; dx++) {
-		for (int dy = -1; dy <= 1; dy++) {
-			GridCell cell = {center.x + dx, center.y + dy, cellSize};
-			const std::vector<int> cellIndices = spatialGrid[cell];
-			for (auto neighbor : cellIndices) {
-				// if (neighbor == particleIndex) continue;
-				const float dist = (position[particleIndex] - position[neighbor]).magnitude();
-				if (dist > smoothingLen) continue;
-				neighborIndices.push_back(neighbor);
+	
+	for (int i = 0; i < numParticles; i++) {
+		std::vector<int> neighborIndices;
+		const GridCell center = {position[i], cellSize};
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				GridCell cell = {center.x + dx, center.y + dy, cellSize};
+				const std::vector<int> cellIndices = spatialGrid[cell];
+				for (auto neighbor : cellIndices) {
+					// if (neighbor == i) continue;
+					const float dist = (position[i] - position[neighbor]).magnitude();
+					if (dist > smoothingLen) continue;
+					neighborIndices.push_back(neighbor);
+				}
 			}
 		}
+		neighbors[i] = neighborIndices;
 	}
-	return neighborIndices;
 }
 
 template <typename T>
 Vector2f Fluid::gradient(int particleIndex, std::vector<T> field) {
 	Vector2f sum = Vector2f(0.f, 0.f);
-	std::vector<int> neighbors = findNeighbors(particleIndex);
+	// std::vector<int> neighbors = findNeighbors(particleIndex);
 	
-	for (auto j : neighbors) {
+	for (auto j : neighbors[particleIndex]) {
 		if (particleIndex == j) continue;
 		const float Ai = field[particleIndex] / (density[particleIndex] * density[particleIndex]);
 		const float Aj = field[j] / (density[j] * density[j]);
@@ -257,9 +260,9 @@ Vector2f Fluid::gradient(int particleIndex, std::vector<T> field) {
 
 float Fluid::divergence(int particleIndex, std::vector<Vector2f> field) {
 	float sum = 0.f;
-	std::vector<int> neighbors = findNeighbors(particleIndex);
+	// std::vector<int> neighbors = findNeighbors(particleIndex);
 
-	for (auto j : neighbors) {
+	for (auto j : neighbors[particleIndex]) {
 		if (particleIndex == j) continue;
 		const Vector2f Aij = field[particleIndex] - field[j];
 		const Vector2f grad = smoothingGradient(position[particleIndex] - position[j], smoothingLen);
@@ -270,9 +273,9 @@ float Fluid::divergence(int particleIndex, std::vector<Vector2f> field) {
 
 Vector2f Fluid::laplacian(int particleIndex, std::vector<Vector2f> field) {
 	Vector2f sum = Vector2f(0.f, 0.f);
-	std::vector<int> neighbors = findNeighbors(particleIndex);
+	// std::vector<int> neighbors = findNeighbors(particleIndex);
 
-	for (auto j : neighbors) {
+	for (auto j : neighbors[particleIndex]) {
 		if (particleIndex == j) continue;
 		const float volume = mass[j] / density[j];
 		const Vector2f Aij = field[particleIndex] - field[j];
