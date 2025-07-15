@@ -19,6 +19,7 @@ add_executable(fluid_sim
     src/main.cpp
     src/fluid.cpp
     src/Vector2f.cpp
+    src/GridCell.cpp
 )
 
 # Include directory for headers

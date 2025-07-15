@@ -2,7 +2,9 @@
 #include <vector>
 #include <algorithm>
 #include <stdio.h>
+#include <unordered_map>
 #include "Vector2f.h"
+#include "GridCell.h"
 
 class Fluid {
 	private:
@@ -17,6 +19,8 @@ class Fluid {
 		std::vector<float> density;
 		std::vector<float> pressure;
 		float smoothingLen;
+		std::unordered_map<GridCell, std::vector<int>> spatialGrid;
+
 		void initializeParticleValues();
 		void calculateDensity();
 		void calculatePressure();
@@ -27,6 +31,8 @@ class Fluid {
 		void correctDivergenceError(std::vector<float> alpha, float dt);
 		float calculateVmax();
 		float calculateTimeStep();
+		void buildSpatialGrid();
+		std::vector<int> findNeighbors(int particleIndex);
 		float smoothingKernel(float dist, float smoothingLength);
 		Vector2f smoothingGradient(Vector2f r, float smoothingLength);
 		template <typename T>
