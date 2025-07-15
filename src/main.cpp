@@ -4,15 +4,19 @@
 #include "Vector2f.h"
 
 int main(void) {
-	auto window = sf::RenderWindow(sf::VideoMode({128u, 64u}), "CMake SFML Project");
-    window.setFramerateLimit(144);
-	
+    constexpr int width = 1920;
+    constexpr int height = 1080;
     constexpr float radius = 5.f;
     constexpr float fluidDensity = 1000.f;
-    constexpr int numParticles = 100;
+    constexpr int numParticles = 1000;
 
-	Fluid fluid(128, 64, numParticles, radius, fluidDensity);
-	fluid.initializeParticleGrid(0, 0, 20, 5);
+	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation");
+    window.setFramerateLimit(144);
+	
+
+	Fluid fluid(width, height, numParticles, radius, fluidDensity);
+	// fluid.initializeParticleGrid(0, 0, 1000, 5);
+    fluid.initializeParticleRandom();
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())

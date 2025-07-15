@@ -34,10 +34,21 @@ void Fluid::initializeParticleGrid(int x, int y, int w, int h) {
 	initializeParticleValues();
 }
 
+void Fluid::initializeParticleRandom() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> xDistr(0, width);
+	std::uniform_real_distribution<float> yDistr(0, height);
+	for (int i = 0; i < numParticles; i++) {
+		position[i] = Vector2f(xDistr(gen), yDistr(gen));
+	}
+	initializeParticleValues();
+}
+
 void Fluid::update() {
 	// float deltaTime = 0.4 * smoothingLen / (calculateVmax() + 1E-6);
 	// float deltaTime = calculateTimeStep();
-	float deltaTime = 0.01f;
+	float deltaTime = 0.1f;
 	printf("pos (%f, %f) vel (%f, %f)\n", position[0].x, position[0].y, velocity[0].x, velocity[0].y);
 	printf("dens %f press %f\n", density[0], pressure[0]); 
 	buildSpatialGrid();
