@@ -7,7 +7,7 @@
 int main(void) {
     constexpr int width = 1920;
     constexpr int height = 1080;
-    constexpr float radius = 5.f;
+    constexpr float radius = 1.2f;
     constexpr float fluidDensity = 1000.f;
     constexpr int numParticles = 2000;
 

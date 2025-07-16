@@ -12,14 +12,13 @@ class Fluid {
 		int width;
 		int height;
 		int numParticles;
-		float radius;
+		float smoothingLen;
 		float fluidDensity;
 		std::vector<Vector2f> position;
 		std::vector<Vector2f> velocity;
 		std::vector<float> mass;
 		std::vector<float> density;
 		std::vector<float> pressure;
-		float smoothingLen;
 		std::unordered_map<GridCell, std::vector<int>> spatialGrid;
 		std::vector<std::vector<int>> neighbors;
 
