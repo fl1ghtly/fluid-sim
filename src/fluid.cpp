@@ -61,23 +61,6 @@ void Fluid::update() {
 	applyBoundaryCondition();
 }
 
-std::vector<float> Fluid::calculateAlphaFactors() {
-	std::vector<float> alpha(numParticles);
-	for (int i = 0; i < numParticles; i++) {
-		Vector2f sumLeft = Vector2f(0.f, 0.f);
-		float sumRight = 0.f;
-		for (int j = 0; j < numParticles; j++) {
-			if (i == j) continue;
-			const Vector2f mWij = mass[j] * smoothingGradient(position[i] - position[j], smoothingLen);
-			sumLeft += mWij;
-			sumRight += mWij.magnitude() * mWij.magnitude();
-		}
-		const float lhs = sumLeft.magnitude() * sumLeft.magnitude();
-		alpha[i] = std::max((float)10E-6, density[i] / (lhs + sumRight));
-	}
-	return alpha;
-}
-
 void Fluid::calculateDensity(float dt) {
 	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
@@ -145,46 +128,6 @@ void Fluid::applyBoundaryCondition() {
 			p.y = height - 1;
 			v.y *= -DAMPING;
 		}
-	}
-}
-
-void Fluid::correctDivergenceError(std::vector<float> alpha, float dt) {
-	std::vector<float> densityChange;
-	// TODO loop until divergence error less than threshold
-	for (int i = 0; i < numParticles; i++) {
-		const float div = divergence(i, velocity);
-		densityChange.push_back(-density[i] * div);
-	}
-
-	// TODO optimize
-	for (int i = 0; i < numParticles; i++) {
-		Vector2f sum = Vector2f(0.f, 0.f);
-		const float stiffnessI = 1.f / dt * densityChange[i] * alpha[i];
-		for (int j = 0; j < numParticles; j++) {
-			if (i == j) continue;
-			const float stiffnessJ = 1.f / dt * densityChange[j] * alpha[j];
-			const float stiffIJ = stiffnessI / density[i] + stiffnessJ / density[j];
-			// TODO double check
-			sum += mass[j] * stiffIJ * smoothingGradient(position[i] - position[j], smoothingLen);
-		}
-		velocity[i] -= dt * sum;
-	}
-}
-
-void Fluid::correctDensityError(std::vector<float> alpha, float dt) {
-	// TODO loop until density error greater than some threshold
-	// calculateDensity();
-	for (int i = 0; i < numParticles; i++) {
-		Vector2f sum = Vector2f(0.f, 0.f);
-		const float stiffnessI = alpha[i] * (density[i] - fluidDensity) / (dt * dt);
-		for (int j = 0; j < numParticles; j++) {
-			if (i == j) continue;
-			const float stiffnessJ = alpha[j] * (density[j] - fluidDensity) / (dt * dt);
-			const float stiffIJ = stiffnessI / density[i] + stiffnessJ / density[j];
-			sum += mass[j] * stiffIJ * smoothingGradient(position[i] - position[j], smoothingLen);
-		}
-		// TODO error occurs here
-		velocity[i] -= dt * sum;
 	}
 }
 

@@ -25,12 +25,9 @@ class Fluid {
 		void initializeParticleValues();
 		void calculateDensity(float dt);
 		void calculatePressure();
-		std::vector<float> calculateAlphaFactors();
 		void applyNonPressureForce(float dt);
 		void applyPressureForce(float dt);
 		void applyBoundaryCondition();
-		void correctDensityError(std::vector<float> alpha, float dt);
-		void correctDivergenceError(std::vector<float> alpha, float dt);
 		float calculateTimeStep();
 		void buildSpatialGrid();
 		void findNeighbors();
