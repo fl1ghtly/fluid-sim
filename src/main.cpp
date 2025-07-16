@@ -9,15 +9,15 @@ int main(void) {
     constexpr int height = 1080;
     constexpr float radius = 5.f;
     constexpr float fluidDensity = 1000.f;
-    constexpr int numParticles = 10000;
+    constexpr int numParticles = 2000;
 
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation");
     window.setFramerateLimit(144);
     
     ParticleSystem particles(numParticles);
 	Fluid fluid(width, height, numParticles, radius, fluidDensity);
-	// fluid.initializeParticleGrid(0, 0, 1000, 5);
-    fluid.initializeParticleRandom();
+	fluid.initializeParticleGrid(width / 4, height / 4, 200, 5);
+    // fluid.initializeParticleRandom();
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())

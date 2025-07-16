@@ -24,11 +24,12 @@ class Fluid {
 		std::vector<std::vector<int>> neighbors;
 
 		void initializeParticleValues();
-		void calculateDensity();
+		void calculateDensity(float dt);
 		void calculatePressure();
 		std::vector<float> calculateAlphaFactors();
 		void applyNonPressureForce(float dt);
-		void applyBoundaryForce(float dt);
+		void applyPressureForce(float dt);
+		void applyBoundaryCondition();
 		void correctDensityError(std::vector<float> alpha, float dt);
 		void correctDivergenceError(std::vector<float> alpha, float dt);
 		float calculateVmax();

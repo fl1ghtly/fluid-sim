@@ -1,7 +1,7 @@
 #include "fluid.h"
 
 #define GRAVITY 9.8
-#define DAMPING 0.5
+#define DAMPING 0.5f
 
 constexpr Vector2f VecDown = Vector2f(0.f, 1.f);
 
@@ -56,14 +56,13 @@ void Fluid::update() {
 	// float deltaTime = 0.4 * smoothingLen / (calculateVmax() + 1E-6);
 	// float deltaTime = calculateTimeStep();
 	float deltaTime = 0.1f;
-	// printf("pos (%f, %f) vel (%f, %f)\n", position[0].x, position[0].y, velocity[0].x, velocity[0].y);
-	// printf("dens %f press %f\n", density[0], pressure[0]); 
 	buildSpatialGrid();
 	findNeighbors();
-	calculateDensity();
-	calculatePressure();
 	applyNonPressureForce(deltaTime);
-	applyBoundaryForce(deltaTime);
+	calculateDensity(deltaTime);
+	calculatePressure();
+	applyPressureForce(deltaTime);       
+	applyBoundaryCondition();
 }
 
 std::vector<float> Fluid::calculateAlphaFactors() {
@@ -83,24 +82,26 @@ std::vector<float> Fluid::calculateAlphaFactors() {
 	return alpha;
 }
 
-void Fluid::calculateDensity() {
+void Fluid::calculateDensity(float dt) {
 	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
 		// std::vector<int> neighbors = findNeighbors(i);
 		for (auto j : neighbors[i]) {
 			// if (i == j) continue;
-			float dist = (position[i] - position[j]).magnitude();
-			float influence = smoothingKernel(dist, smoothingLen);
-			density[i] += mass[j] * influence;
+			const Vector2f dist = position[i] - position[j];
+			const float influence = smoothingKernel(dist.magnitude(), smoothingLen);
+			const Vector2f velDiff = velocity[i] - velocity[j];
+			const Vector2f smoothGrad = smoothingGradient(dist, smoothingLen);
+			density[i] += mass[j] * influence + dt * velDiff.dot(smoothGrad);
 		}
 	}
 }
 
 void Fluid::calculatePressure() {
-	constexpr float stiffness = 10.f;
+	constexpr float stiffness = 100.f;
 	for (int i = 0; i < numParticles; i++) {
 		// Rest density for water is 1000 kg/m^3
-		pressure[i] = stiffness * (density[i] - fluidDensity);
+		pressure[i] = stiffness * (std::pow(density[i] / fluidDensity, 7.f) - 1);
 	}
 }
 
@@ -110,9 +111,6 @@ void Fluid::applyNonPressureForce(float dt) {
 		Vector2f Force = {0.f, 0.f};
 		// Force due to gravity
 		// Force += VecDown * GRAVITY * mass[i];
-		// Force due to pressure
-		const Vector2f grad = gradient(i, pressure);
-		Force += -mass[i] / density[i] * grad;
 		//Force due to viscosity
 		const Vector2f lap = laplacian(i, velocity);
 		Force += mass[i] * viscosity * laplacian(i, velocity);
@@ -125,27 +123,37 @@ void Fluid::applyNonPressureForce(float dt) {
 	}
 }
 
-void Fluid::applyBoundaryForce(float dt) {
-	const float stiffness = 100000.f;
+void Fluid::applyPressureForce(float dt) {
+	for (int i = 0; i < numParticles; i++) {
+		Vector2f Force = {0.f, 0.f};
+		const Vector2f grad = gradient(i, pressure);
+		Force += -mass[i] / density[i] * grad;
+		
+		velocity[i] += dt * Force / mass[i];
+		position[i] += dt * velocity[i];
+	}
+}
+
+void Fluid::applyBoundaryCondition() {
 	for (int i = 0; i < numParticles; i++) {
 		auto& p = position[i];
 		auto& v = velocity[i];
-		Vector2f force = {0.f, 0.f};
 
-		if (p.x - radius < 0.f) {
-			force.x += stiffness * (-p.x);
-		} else if (p.x + radius > width) {
-			force.x += stiffness * (width - p.x);
+		if (p.x <= 0.f) {
+			p.x = 0.f;
+			v.x *= -DAMPING;
+		} else if (p.x >= width) {
+			p.x = width - 1;
+			v.x *= -DAMPING;
 		}
 		
-		if (p.y - radius < 0.f) {
-			force.y += stiffness * (-p.y);
-		} else if (p.y + radius> height) {
-			force.y += stiffness * (height - p.y);
+		if (p.y <= 0.f) {
+			p.y = 0.f;
+			v.y *= -DAMPING;
+		} else if (p.y >= height) {
+			p.y = height - 1;
+			v.y *= -DAMPING;
 		}
-
-		v += dt * force / mass[i];
-		p += dt * velocity[i];
 	}
 }
 
@@ -174,7 +182,7 @@ void Fluid::correctDivergenceError(std::vector<float> alpha, float dt) {
 
 void Fluid::correctDensityError(std::vector<float> alpha, float dt) {
 	// TODO loop until density error greater than some threshold
-	calculateDensity();
+	// calculateDensity();
 	for (int i = 0; i < numParticles; i++) {
 		Vector2f sum = Vector2f(0.f, 0.f);
 		const float stiffnessI = alpha[i] * (density[i] - fluidDensity) / (dt * dt);
