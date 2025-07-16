@@ -53,9 +53,8 @@ void Fluid::initializeParticleRandom() {
 }
 
 void Fluid::update() {
-	// float deltaTime = 0.4 * smoothingLen / (calculateVmax() + 1E-6);
-	// float deltaTime = calculateTimeStep();
-	float deltaTime = 0.1f;
+	// const float deltaTime = 0.1f;
+	const float deltaTime = calculateTimeStep();
 	buildSpatialGrid();
 	findNeighbors();
 	applyNonPressureForce(deltaTime);
@@ -197,21 +196,13 @@ void Fluid::correctDensityError(std::vector<float> alpha, float dt) {
 	}
 }
 
-float Fluid::calculateVmax() {
-	float vmax = 0.f;
-	for (int i = 0; i < numParticles; i++) {
-		const float magnitude = velocity[i].magnitude();
-		if (magnitude > vmax) vmax = magnitude;
-	}
-	return vmax;
-}
-
 float Fluid::calculateTimeStep() {
-	const float vmaxLimit = 100.f;
-	const float vmax = calculateVmax();
+	const Vector2f v = *std::max_element(velocity.begin(), velocity.end());
+	const float vMax = v.magnitude();
 
-	const float vmaxSafe = std::min(vmaxLimit, 2.f * vmax);
-	return 0.4 * smoothingLen / (vmaxSafe + 1E-6);
+	const float timestep = 0.4f * radius / (vMax + 1E-6f);
+
+	return std::clamp(timestep, 1E-6f, 1.f);
 }
 
 void Fluid::buildSpatialGrid() {

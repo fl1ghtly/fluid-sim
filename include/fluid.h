@@ -32,7 +32,6 @@ class Fluid {
 		void applyBoundaryCondition();
 		void correctDensityError(std::vector<float> alpha, float dt);
 		void correctDivergenceError(std::vector<float> alpha, float dt);
-		float calculateVmax();
 		float calculateTimeStep();
 		void buildSpatialGrid();
 		void findNeighbors();
