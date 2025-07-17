@@ -29,11 +29,20 @@ void Fluid::initializeParticleValues() {
 	std::fill(pressure.begin(), pressure.end(), 0.f);
 }
 
-void Fluid::initializeParticleGrid(int x, int y, int w, int h) {
-	const float spacingFactor = 1.5f;
+void Fluid::initializeParticleGrid(int gridWidth) {
+	constexpr float spacingFactor = 2.f;
 	const float spacing = smoothingLen / spacingFactor;
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> jitter(0, spacing);
+	
+	Vector2f center(width / 2, height / 2);
+	center.x -= 2 * gridWidth;
+	center.y -= 2 * numParticles / gridWidth;
 	for (int i = 0; i < numParticles; i++) {
-		position[i] = Vector2f(x + spacing * (i % w), y + spacing * (i / w));
+		position[i] = Vector2f(center.x + jitter(gen) + spacing * (i % gridWidth), 
+							   center.y + jitter(gen) + spacing * (i / gridWidth));
 	}
 	initializeParticleValues();
 }

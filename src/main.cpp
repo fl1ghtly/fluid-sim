@@ -16,7 +16,7 @@ int main(void) {
     
     ParticleSystem particles(numParticles);
 	Fluid fluid(width, height, numParticles, radius, fluidDensity);
-	fluid.initializeParticleGrid(width / 4, height / 4, 200, 5);
+	fluid.initializeParticleGrid(100);
     // fluid.initializeParticleRandom();
     while (window.isOpen())
     {

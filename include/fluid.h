@@ -44,6 +44,6 @@ class Fluid {
 		std::vector<Vector2f> getPosition();
 		std::vector<Vector2f> getVelocity();
 		float getPressureAtPoint(const Vector2f pos);
-		void initializeParticleGrid(int x, int y, int width, int height);
+		void initializeParticleGrid(int gridWidth);
 		void initializeParticleRandom();
 };
