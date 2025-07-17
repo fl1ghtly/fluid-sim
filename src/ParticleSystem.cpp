@@ -5,11 +5,13 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 }
 
  void ParticleSystem::update(std::vector<Vector2f> position, std::vector<Vector2f> velocity) {
-	const Vector2f maxVel = *std::max_element(velocity.begin(), velocity.end());
-	const float magnitude = maxVel.magnitude();
+	// const Vector2f maxVel = *std::max_element(velocity.begin(), velocity.end());
+	// const float magnitude = maxVel.magnitude();
+	const float magnitude = 20.f;
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
-		vertices[i].color = linearGradient(velocity[i].magnitude() / magnitude);
+		const float t = std::clamp(velocity[i].magnitude() / magnitude, 0.f, 1.f);
+		vertices[i].color = linearGradient(t);
 	}
  }
 
