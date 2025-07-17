@@ -157,10 +157,9 @@ void Fluid::applyBoundaryCondition() {
 float Fluid::calculateTimeStep() {
 	const Vector2f v = *std::max_element(velocity.begin(), velocity.end());
 	const float vMax = v.magnitude();
-
 	const float timestep = 0.4f * 2.f * smoothingLen / (vMax + 1E-6f);
 
-	return std::clamp(timestep, 1E-6f, 1.f);
+	return std::clamp(timestep, 1E-6f, 1E-2f);
 }
 
 void Fluid::buildSpatialGrid() {
