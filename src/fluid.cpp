@@ -84,35 +84,49 @@ void Fluid::calculateDensity(float dt) {
 }
 
 void Fluid::calculatePressure() {
-	constexpr float stiffness = 100.f;
+	constexpr float stiffness = 2000.f;
 	for (int i = 0; i < numParticles; i++) {
-		pressure[i] = stiffness * (std::pow(density[i] / fluidDensity, 7.f) - 1);
+		pressure[i] = stiffness * (density[i] - fluidDensity);
 	}
 }
 
 void Fluid::applyNonPressureForce(float dt) {
-	const float viscosity = 10E-6f;
+	const float viscosity = 200.f;
 	for (int i = 0; i < numParticles; i++) {
-		Vector2f Force = {0.f, 0.f};
 		// Force due to gravity
-		// Force += VecDown * GRAVITY * mass[i];
-
-		//Force due to viscosity
-		const Vector2f lap = laplacian(i, velocity);
-		Force += mass[i] * viscosity * lap;
+		Vector2f gForce = VecDown * GRAVITY * mass[i];
 		
+		// Force due to viscosity
+		Vector2f vForce(0.f, 0.f);
+		for (int j : neighbors[i]) {
+			const float volume = mass[j] / density[j];
+			const Vector2f velDiff = velocity[j] - velocity[i];
+			const float vLaplacian = viscosityLaplacian((position[i] - position[j]).magnitude(), smoothingLen);
+			vForce += volume * velDiff * vLaplacian;
+		}
+		vForce *= viscosity;
+		
+		const Vector2f Force = gForce + vForce;
 		velocity[i] += dt * Force / mass[i];
 		position[i] += dt * velocity[i];
 	}
 }
 
 void Fluid::applyPressureForce(float dt) {
+	std::vector<Vector2f> forces(numParticles);
 	for (int i = 0; i < numParticles; i++) {
-		Vector2f Force = {0.f, 0.f};
-		const Vector2f grad = gradient(i, pressure);
-		Force += -mass[i] / density[i] * grad;
-		
-		velocity[i] += dt * Force / mass[i];
+		Vector2f force(0.f, 0.f);
+		for (int j : neighbors[i]) {
+			const float volume = mass[j] / density[j];
+			const float avgPressure = (pressure[i] + pressure[j]) / 2.f;
+			const Vector2f grad = spikyGradient(position[i] - position[j], smoothingLen);
+			force += -volume * avgPressure * grad;
+		}
+		forces[i] =  force;
+	}
+	
+	for (int i = 0; i < numParticles; i++) {
+		velocity[i] += dt * forces[i] / mass[i];
 		position[i] += dt * velocity[i];
 	}
 }
