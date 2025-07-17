@@ -275,3 +275,10 @@ Vector2f Fluid::spikyGradient(Vector2f r, float smoothingLength) {
 	const float factor = smoothingLength - dist;
 	return coeff * factor * factor * r / dist;
 }
+
+float Fluid::viscosityLaplacian(float dist, float smoothingLength) {
+	if (dist <= 0 || dist > smoothingLength) return 0.f;
+	const float coeff = 40.f / (M_PI * pow(smoothingLen, 5.f));
+	const float factor = smoothingLength - dist;
+	return coeff * factor;
+}
