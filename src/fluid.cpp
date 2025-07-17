@@ -66,9 +66,9 @@ void Fluid::calculateDensity(float dt) {
 		density[i] = 0.f;
 		for (auto j : neighbors[i]) {
 			const Vector2f dist = position[i] - position[j];
-			const float influence = smoothingKernel(dist.magnitude(), smoothingLen);
+			const float influence = poly6Kernel(dist.magnitude(), smoothingLen);
 			const Vector2f velDiff = velocity[i] - velocity[j];
-			const Vector2f smoothGrad = smoothingGradient(dist, smoothingLen);
+			const Vector2f smoothGrad = poly6Gradient(dist, smoothingLen);
 			density[i] += mass[j] * influence + dt * velDiff.dot(smoothGrad);
 		}
 	}
@@ -182,7 +182,7 @@ Vector2f Fluid::gradient(int particleIndex, std::vector<T> field) {
 		if (particleIndex == j) continue;
 		const float Ai = field[particleIndex] / (density[particleIndex] * density[particleIndex]);
 		const float Aj = field[j] / (density[j] * density[j]);
-		Vector2f grad = smoothingGradient(position[particleIndex] - position[j], smoothingLen);
+		Vector2f grad = poly6Gradient(position[particleIndex] - position[j], smoothingLen);
 		sum += mass[j] * (Ai + Aj) * grad;
 		if (std::isnan(sum.x) || std::isnan(sum.y)) {
 			printf("Ai %f, Aj %f, grad (%f, %f)\n", Ai, Aj, grad.x, grad.y);
@@ -197,7 +197,7 @@ float Fluid::divergence(int particleIndex, std::vector<Vector2f> field) {
 	for (auto j : neighbors[particleIndex]) {
 		if (particleIndex == j) continue;
 		const Vector2f Aij = field[particleIndex] - field[j];
-		const Vector2f grad = smoothingGradient(position[particleIndex] - position[j], smoothingLen);
+		const Vector2f grad = poly6Gradient(position[particleIndex] - position[j], smoothingLen);
 		sum += mass[j] * Aij.dot(grad);
 	}
 	return -1.f / density[particleIndex] * sum;
@@ -211,7 +211,7 @@ Vector2f Fluid::laplacian(int particleIndex, std::vector<Vector2f> field) {
 		const float volume = mass[j] / density[j];
 		const Vector2f Aij = field[particleIndex] - field[j];
 		const Vector2f Xij = position[particleIndex] - position[j];
-		const Vector2f smoothGrad = smoothingGradient(Xij, smoothingLen);
+		const Vector2f smoothGrad = poly6Gradient(Xij, smoothingLen);
 		const float numerator = Xij.dot(smoothGrad);
 		const float denominator = Xij.dot(Xij) + 0.01 * smoothingLen * smoothingLen;
 		sum += volume * Aij * numerator / denominator;
@@ -227,19 +227,42 @@ std::vector<Vector2f> Fluid::getVelocity() {
 	return velocity;
 }
 
-float Fluid::smoothingKernel(float dist, float smoothingLength) {
+float Fluid::getPressureAtPoint(const Vector2f point) {
+	const float cellSize = smoothingLen;
+	const GridCell center = {point, cellSize};
+	float p = 0.f;
+
+	for (int dx = -1; dx <= 1; dx++) {
+		for (int dy = -1; dy <= 1; dy++) {
+			GridCell cell = {center.x + dx, center.y + dy, cellSize};
+			const std::vector<int> cellIndices = spatialGrid[cell];
+			for (auto neighbor : cellIndices) {
+				p += pressure[neighbor];			
+			}
+		}
+	}
+	return p;
+}
+
+float Fluid::poly6Kernel(float dist, float smoothingLength) {
 	if (dist < 0 || dist > smoothingLength) return 0.f;
-	// poly6 kernel
 	const float coeff = 4 / (M_PI * pow(smoothingLength, 8.f));
 	const float factor = smoothingLength * smoothingLength - dist * dist;
 	return coeff * factor * factor * factor;
 }
 
-Vector2f Fluid::smoothingGradient(Vector2f r, float smoothingLength) {
+Vector2f Fluid::poly6Gradient(Vector2f r, float smoothingLength) {
 	const float dist = r.magnitude();
-	if (dist < 0 || dist > smoothingLength) return Vector2f(0.f, 0.f);
-	// poly6 kernel gradient
+	if (dist <= 0 || dist > smoothingLength) return Vector2f(0.f, 0.f);
 	const float coeff = 4 / (M_PI * pow(smoothingLength, 8.f));
 	const float factor = -6 * (smoothingLength * smoothingLength - dist * dist);
-	return coeff * (factor * factor) * r;
+	return coeff * factor * factor * r;
+}
+
+Vector2f Fluid::spikyGradient(Vector2f r, float smoothingLength) {
+	const float dist = r.magnitude();
+	if (dist <= 0 || dist > smoothingLength) return Vector2f(0.f, 0.f);
+	const float coeff = 30.f / (M_PI * pow(smoothingLength, 5.f));
+	const float factor = smoothingLength - dist;
+	return coeff * factor * factor * r / dist;
 }
