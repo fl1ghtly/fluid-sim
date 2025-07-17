@@ -285,7 +285,7 @@ Vector2f Fluid::poly6Gradient(Vector2f r, float smoothingLength) {
 Vector2f Fluid::spikyGradient(Vector2f r, float smoothingLength) {
 	const float dist = r.magnitude();
 	if (dist <= 0 || dist > smoothingLength) return Vector2f(0.f, 0.f);
-	const float coeff = 30.f / (M_PI * pow(smoothingLength, 5.f));
+	const float coeff = -30.f / (M_PI * pow(smoothingLength, 5.f));
 	const float factor = smoothingLength - dist;
 	return coeff * factor * factor * r / dist;
 }
