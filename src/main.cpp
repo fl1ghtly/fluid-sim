@@ -5,19 +5,22 @@
 #include "ParticleSystem.h"
 
 int main(void) {
-    constexpr int width = 1920;
-    constexpr int height = 1080;
-    constexpr float radius = 1.2f;
+    constexpr int width = 200;
+    constexpr int height = 600;
+    constexpr float radius = 8.f;
     constexpr float fluidDensity = 1000.f;
-    constexpr int numParticles = 2000;
+    constexpr int numParticles = 1000;
 
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation");
     window.setFramerateLimit(144);
     
     ParticleSystem particles(numParticles);
 	Fluid fluid(width, height, numParticles, radius, fluidDensity);
-	fluid.initializeParticleGrid(100);
+
+    // Create square grids
+	fluid.initializeParticleGrid((int)sqrt(numParticles));
     // fluid.initializeParticleRandom();
+
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())

@@ -59,9 +59,8 @@ void Fluid::initializeParticleRandom() {
 }
 
 void Fluid::update() {
-	const float deltaTime = 0.1f;
+	const float deltaTime = 0.01f;
 	// const float deltaTime = calculateTimeStep();
-	buildSpatialGrid();
 	findNeighbors();
 	applyNonPressureForce(deltaTime);
 	calculateDensity(deltaTime);
@@ -84,17 +83,18 @@ void Fluid::calculateDensity(float dt) {
 }
 
 void Fluid::calculatePressure() {
-	constexpr float stiffness = 2000.f;
+	constexpr float stiffness = 10000.f;
 	for (int i = 0; i < numParticles; i++) {
-		pressure[i] = stiffness * (density[i] - fluidDensity);
+		pressure[i] = stiffness * (pow(density[i] / fluidDensity, 7.f) - 1);
 	}
 }
 
 void Fluid::applyNonPressureForce(float dt) {
-	const float viscosity = 200.f;
+	const float viscosity = 1E+6f;
 	for (int i = 0; i < numParticles; i++) {
 		// Force due to gravity
-		Vector2f gForce = VecDown * GRAVITY * mass[i];
+		Vector2f gForce(0.f, 0.f); 
+		gForce = VecDown * GRAVITY * mass[i];
 		
 		// Force due to viscosity
 		Vector2f vForce(0.f, 0.f);
@@ -177,6 +177,7 @@ void Fluid::buildSpatialGrid() {
 
 void Fluid::findNeighbors() {
 	const float cellSize = smoothingLen;
+	buildSpatialGrid();
 	
 	for (int i = 0; i < numParticles; i++) {
 		std::vector<int> neighborIndices;
