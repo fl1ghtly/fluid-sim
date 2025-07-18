@@ -4,6 +4,7 @@
 #include "FluidParameters.h"
 #include "Vector2f.h"
 #include "ParticleSystem.h"
+#include "PressureSystem.h"
 
 int main(void) {
     constexpr Vector2f downDir(0.f, 1.f);
@@ -28,6 +29,15 @@ int main(void) {
         numParticles
     );
 
+    /*
+    constexpr int GRID_SIZE = 50;
+    constexpr float GRID_X = width / GRID_SIZE;
+    constexpr float GRID_Y = height / GRID_SIZE;
+    std::vector<std::vector<float>> pressureGrid;
+    pressureGrid.resize(GRID_SIZE + 1, std::vector<float>(GRID_SIZE + 1, 0.f));
+    PressureSystem pressureGradient(width, height, GRID_SIZE);
+    */
+
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation");
     window.setFramerateLimit(144);
     
@@ -36,7 +46,6 @@ int main(void) {
 
     // Create square grids
 	fluid.initializeParticleGrid((int)sqrt(numParticles));
-    // fluid.initializeParticleRandom();
 
     while (window.isOpen())
     {
@@ -51,8 +60,24 @@ int main(void) {
 		std::vector<Vector2f> pos = fluid.getPosition();
 		std::vector<Vector2f> vel = fluid.getVelocity();
         particles.update(pos, vel);
+
+        /*
+        float maxP = 0.f;
+        float minP = 0.f;
+        for (int i = 0; i < GRID_SIZE + 1; i++) {
+            for (int j = 0; j < GRID_SIZE + 1; j++) {
+                const float p = fluid.getPressureAtPoint({i * GRID_X, j * GRID_Y});
+                pressureGrid[i][j] = p;
+                if (p > maxP) maxP = p;
+                if (p < minP) minP = p;
+            }
+        }
+        pressureGradient.updatePressureGradient(pressureGrid, maxP, minP);
+        */
+        
         
         window.clear();
+        // window.draw(pressureGradient);
         window.draw(particles);
         window.display();
         fluid.update();
