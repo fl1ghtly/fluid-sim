@@ -6,14 +6,14 @@
 #include <random>
 #include "Vector2f.h"
 #include "GridCell.h"
+#include "FluidParameters.h"
 
 class Fluid {
 	private:
 		int width;
 		int height;
-		int numParticles;
-		float smoothingLen;
-		float fluidDensity;
+		FluidParameters& params;
+		float fixedTimestep;
 		std::vector<Vector2f> position;
 		std::vector<Vector2f> velocity;
 		std::vector<float> mass;
@@ -40,7 +40,7 @@ class Fluid {
 		float divergence(int particleIndex, std::vector<Vector2f> field);
 		Vector2f laplacian(int particleIndex, std::vector<Vector2f> field);
 	public:
-		Fluid(int width, int heigh, int numParticles, float particleRadius, float density);
+		Fluid(int width, int heigh, FluidParameters& params, float fixedTimestep=1E-2f);
 		void update();
 		std::vector<Vector2f> getPosition();
 		std::vector<Vector2f> getVelocity();
