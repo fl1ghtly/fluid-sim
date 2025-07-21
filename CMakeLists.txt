@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.28)
 project(FluidSimulation LANGUAGES CXX)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -31,3 +31,8 @@ target_include_directories(fluid_sim PRIVATE
 )
 
 target_link_libraries(fluid_sim PRIVATE SFML::Graphics)
+target_link_libraries(fluid_sim PRIVATE TracyClient)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(fluid_sim PUBLIC OpenMP::OpenMP_CXX)
+endif()
