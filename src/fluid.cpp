@@ -189,25 +189,30 @@ void Fluid::buildSpatialGrid() {
 
 void Fluid::findNeighbors() {
 	const float cellSize = params.smoothingRadius;
+	// Maintain spatial locality every simulation step
+	sortZIndex();
 	buildSpatialGrid();
 	
+	std::vector<int> neighborIndices;
+	// Reserve a bit more than the expected average number of neighbors (20)
+	// to avoid constant reallocations
+	neighborIndices.reserve(64);
 	for (int i = 0; i < params.numParticles; i++) {
-		std::vector<int> neighborIndices;
+		neighborIndices.clear();
 		const GridCell center = {position[i], cellSize};
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
-				GridCell cell = {center.x + dx, center.y + dy, cellSize};
+				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
 				const std::vector<int> cellIndices = spatialGrid[cell];
 				for (auto neighbor : cellIndices) {
-					// if (neighbor == i) continue;
-					const float dist = (position[i] - position[neighbor]).magnitude();
-					if (dist > params.smoothingRadius) continue;
+					const Vector2f rij = position[i] - position[neighbor];
+					const float sqDist = rij.dot(rij);
+					if (sqDist > params.sqSmoothingRadius) continue;
 					neighborIndices.push_back(neighbor);
 				}
 			}
 		}
-		neighbors[i] = neighborIndices;
-	}
+		neighbors[i] = std::move(neighborIndices);
 	}
 }
 
