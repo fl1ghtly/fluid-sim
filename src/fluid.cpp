@@ -3,6 +3,7 @@
 Fluid::Fluid(int width, int height, FluidParameters& params, float fixedTimestep) 
 	: width(width), 
 	  height(height), 
+	  currentStep(0),
 	  params(params),
 	  fixedTimestep(fixedTimestep),
 	  position(params.numParticles), 
@@ -59,12 +60,14 @@ void Fluid::initializeParticleRandom() {
 
 void Fluid::update() {
 	const float deltaTime = calculateTimeStep();
+
 	findNeighbors();
 	applyNonPressureForce(deltaTime);
 	calculateDensity(deltaTime);
 	calculatePressure();
 	applyPressureForce(deltaTime);       
 	applyBoundaryCondition();
+	currentStep++;
 }
 
 void Fluid::calculateDensity(float dt) {

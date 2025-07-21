@@ -13,6 +13,7 @@ class Fluid {
 	private:
 		int width;
 		int height;
+		int currentStep;
 		FluidParameters& params;
 		float fixedTimestep;
 		std::vector<Vector2f> position;
