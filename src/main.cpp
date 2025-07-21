@@ -6,17 +6,19 @@
 #include "ParticleSystem.h"
 #include "PressureSystem.h"
 
+#include <tracy/Tracy.hpp>
+
 int main(void) {
     constexpr Vector2f downDir(0.f, 1.f);
     constexpr float g = 9.8f;
     constexpr float damping = 0.95f;
     constexpr float restDensity = 1000.f;
-    constexpr float stiffness = 10000.f;
+    constexpr float stiffness = 1E+5f;
     constexpr float viscosity = 1E+6f;
     constexpr float smoothingRadius = 8.f;
-    constexpr int numParticles = 1000;
-    constexpr int width = 800;
-    constexpr int height = 600;
+    constexpr int numParticles = 10000;
+    constexpr int width = 1920;
+    constexpr int height = 1080;
 
     FluidParameters params(
         downDir, 
@@ -42,10 +44,13 @@ int main(void) {
     window.setFramerateLimit(144);
     
     ParticleSystem particles(numParticles);
-	Fluid fluid(width, height, params);
+	Fluid fluid(width, height, params, -1);
 
     // Create square grids
 	fluid.initializeParticleGrid((int)sqrt(numParticles));
+
+    constexpr int MAX_SIM_STEPS = 1200;
+    int steps = 0;
 
     while (window.isOpen())
     {
@@ -81,5 +86,11 @@ int main(void) {
         window.draw(particles);
         window.display();
         fluid.update();
+        FrameMark;
+
+        if (steps >= MAX_SIM_STEPS) {
+            window.close();
+        }
+        steps++;
     }
 }
