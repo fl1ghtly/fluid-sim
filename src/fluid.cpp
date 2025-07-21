@@ -68,25 +68,33 @@ void Fluid::update() {
 }
 
 void Fluid::calculateDensity(float dt) {
+	ZoneScoped;
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		density[i] = 0.f;
 		for (auto j : neighbors[i]) {
-			const Vector2f dist = position[i] - position[j];
-			const float influence = poly6Kernel(dist.magnitude(), params.smoothingRadius);
+			const Vector2f rij = position[i] - position[j];
+			const float dist = rij.magnitude();
+			const float influence = poly6Kernel(dist, params.smoothingRadius);
 			const Vector2f velDiff = velocity[i] - velocity[j];
-			const Vector2f smoothGrad = poly6Gradient(dist, params.smoothingRadius);
+			const Vector2f smoothGrad = poly6Gradient(rij, params.smoothingRadius);
 			density[i] += mass[j] * influence + dt * velDiff.dot(smoothGrad);
 		}
 	}
 }
 
 void Fluid::calculatePressure() {
+	ZoneScoped;
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		pressure[i] = params.stiffness * (pow(density[i] / params.restDensity, 7.f) - 1);
 	}
 }
 
 void Fluid::applyNonPressureForce(float dt) {
+	ZoneScoped;
+	std::vector<Vector2f> forces(params.numParticles);
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		// Force due to gravity
 		Vector2f gForce(0.f, 0.f); 
@@ -97,30 +105,38 @@ void Fluid::applyNonPressureForce(float dt) {
 		for (int j : neighbors[i]) {
 			const float volume = mass[j] / density[j];
 			const Vector2f velDiff = velocity[j] - velocity[i];
-			const float vLaplacian = viscosityLaplacian((position[i] - position[j]).magnitude(), params.smoothingRadius);
+			const float dist = (position[i] - position[j]).magnitude();
+			const float vLaplacian = viscosityLaplacian(dist, params.smoothingRadius);
 			vForce += volume * velDiff * vLaplacian;
 		}
 		vForce *= params.viscosity;
 		
-		const Vector2f Force = gForce + vForce;
-		velocity[i] += dt * Force / mass[i];
+		forces[i] = gForce + vForce;
+	}
+	
+	#pragma omp parallel for
+	for (int i = 0; i < params.numParticles; i++) {
+		velocity[i] += dt * forces[i] / mass[i];
 		position[i] += dt * velocity[i];
 	}
 }
 
 void Fluid::applyPressureForce(float dt) {
 	std::vector<Vector2f> forces(params.numParticles);
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		Vector2f force(0.f, 0.f);
 		for (int j : neighbors[i]) {
 			const float volume = mass[j] / density[j];
 			const float avgPressure = (pressure[i] + pressure[j]) / 2.f;
-			const Vector2f grad = spikyGradient(position[i] - position[j], params.smoothingRadius);
+			const Vector2f rij = position[i] - position[j];
+			const Vector2f grad = spikyGradient(rij, params.smoothingRadius);
 			force += -volume * avgPressure * grad;
 		}
 		forces[i] =  force;
 	}
 	
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		velocity[i] += dt * forces[i] / mass[i];
 		position[i] += dt * velocity[i];
