@@ -241,51 +241,6 @@ void Fluid::sortZIndex() {
 	});
 }
 
-template <typename T>
-Vector2f Fluid::gradient(int particleIndex, std::vector<T> field) {
-	Vector2f sum = Vector2f(0.f, 0.f);
-	
-	for (auto j : neighbors[particleIndex]) {
-		if (particleIndex == j) continue;
-		const float Ai = field[particleIndex] / (density[particleIndex] * density[particleIndex]);
-		const float Aj = field[j] / (density[j] * density[j]);
-		Vector2f grad = spikyGradient(position[particleIndex] - position[j], params.smoothingRadius);
-		sum += mass[j] * (Ai + Aj) * grad;
-		if (std::isnan(sum.x) || std::isnan(sum.y)) {
-			printf("Ai %f, Aj %f, grad (%f, %f)\n", Ai, Aj, grad.x, grad.y);
-		}
-	}
-	return density[particleIndex] * sum;
-}
-
-float Fluid::divergence(int particleIndex, std::vector<Vector2f> field) {
-	float sum = 0.f;
-
-	for (auto j : neighbors[particleIndex]) {
-		if (particleIndex == j) continue;
-		const Vector2f Aij = field[particleIndex] - field[j];
-		const Vector2f grad = poly6Gradient(position[particleIndex] - position[j], params.smoothingRadius);
-		sum += mass[j] * Aij.dot(grad);
-	}
-	return -1.f / density[particleIndex] * sum;
-}
-
-Vector2f Fluid::laplacian(int particleIndex, std::vector<Vector2f> field) {
-	Vector2f sum = Vector2f(0.f, 0.f);
-
-	for (auto j : neighbors[particleIndex]) {
-		if (particleIndex == j) continue;
-		const float volume = mass[j] / density[j];
-		const Vector2f Aij = field[particleIndex] - field[j];
-		const Vector2f Xij = position[particleIndex] - position[j];
-		const Vector2f smoothGrad = poly6Gradient(Xij, params.smoothingRadius);
-		const float numerator = Xij.dot(smoothGrad);
-		const float denominator = Xij.dot(Xij) + 0.01 * params.smoothingRadius * params.smoothingRadius;
-		sum += volume * Aij * numerator / denominator;
-	}
-	return 2.f * sum;
-}
-
 std::vector<Vector2f> Fluid::getPosition() {
 	return position;
 }

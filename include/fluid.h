@@ -38,10 +38,6 @@ class Fluid {
 		Vector2f poly6Gradient(Vector2f r, float smoothingLength);
 		Vector2f spikyGradient(Vector2f r, float smoothingLength);
 		float viscosityLaplacian(float dist, float smoothingLength);
-		template <typename T>
-		Vector2f gradient(int particleIndex, std::vector<T> field);
-		float divergence(int particleIndex, std::vector<Vector2f> field);
-		Vector2f laplacian(int particleIndex, std::vector<Vector2f> field);
 	public:
 		Fluid(int width, int heigh, FluidParameters& params, float fixedTimestep=1E-2f);
 		void update();
