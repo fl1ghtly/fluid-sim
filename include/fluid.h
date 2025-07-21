@@ -9,6 +9,8 @@
 #include "GridCell.h"
 #include "FluidParameters.h"
 
+#include <tracy/Tracy.hpp>
+
 class Fluid {
 	private:
 		int width;

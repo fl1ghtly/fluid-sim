@@ -59,6 +59,7 @@ void Fluid::initializeParticleRandom() {
 }
 
 void Fluid::update() {
+	ZoneScoped;
 	const float deltaTime = calculateTimeStep();
 
 	findNeighbors();
@@ -125,6 +126,7 @@ void Fluid::applyNonPressureForce(float dt) {
 }
 
 void Fluid::applyPressureForce(float dt) {
+	ZoneScoped;
 	std::vector<Vector2f> forces(params.numParticles);
 	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
@@ -147,6 +149,7 @@ void Fluid::applyPressureForce(float dt) {
 }
 
 void Fluid::applyBoundaryCondition() {
+	ZoneScoped;
 	for (int i = 0; i < params.numParticles; i++) {
 		auto& p = position[i];
 		auto& v = velocity[i];
@@ -179,6 +182,7 @@ float Fluid::calculateTimeStep() {
 }
 
 void Fluid::buildSpatialGrid() {
+	ZoneScoped;
 	// Cell Size = Kernel Support Length is optimal
 	const float cellSize = params.smoothingRadius;
 
@@ -190,6 +194,7 @@ void Fluid::buildSpatialGrid() {
 }
 
 void Fluid::findNeighbors() {
+	ZoneScoped;
 	const float cellSize = params.smoothingRadius;
 	// Maintain spatial locality every simulation step
 	sortZIndex();
