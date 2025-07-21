@@ -180,7 +180,6 @@ void Fluid::buildSpatialGrid() {
 	const float cellSize = params.smoothingRadius;
 
 	spatialGrid.clear();
-	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		GridCell c = {position[i], cellSize};
 		spatialGrid[c].push_back(i);
