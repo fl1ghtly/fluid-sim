@@ -186,6 +186,32 @@ void Fluid::findNeighbors() {
 		}
 		neighbors[i] = neighborIndices;
 	}
+	}
+}
+
+void Fluid::sortZIndex() {
+	ZoneScoped;
+	const float cellSize = params.smoothingRadius;
+	std::vector<unsigned int> zIndex(params.numParticles);
+
+	for (int i = 0; i < params.numParticles; i++) {
+		const GridCell c = {position[i], cellSize};
+		zIndex[i] = c.zOrder;
+	}
+
+	auto zipped = std::views::zip(
+		zIndex, 
+		position, 
+		velocity,
+		mass,
+		density,
+		pressure 
+	);
+	
+	std::ranges::sort(zipped, [](const auto& lhs, const auto& rhs) {
+		// Sort particle arrays based on their Z-index
+		return std::get<0>(lhs) < std::get<0>(rhs);
+	});
 }
 
 template <typename T>

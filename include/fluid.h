@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unordered_map>
 #include <random>
+#include <ranges>
 #include "Vector2f.h"
 #include "GridCell.h"
 #include "FluidParameters.h"
@@ -30,6 +31,7 @@ class Fluid {
 		void applyBoundaryCondition();
 		float calculateTimeStep();
 		void buildSpatialGrid();
+		void sortZIndex();
 		void findNeighbors();
 		float poly6Kernel(float dist, float smoothingLength);
 		Vector2f poly6Gradient(Vector2f r, float smoothingLength);
