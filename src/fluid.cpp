@@ -11,7 +11,12 @@ Fluid::Fluid(int width, int height, FluidParameters& params, float fixedTimestep
 	  density(params.numParticles), 
 	  pressure(params.numParticles),
 	  neighbors(params.numParticles)
-{}
+{
+	// Kernel Coefficients
+	poly6C = 4 / (M_PI * pow(params.smoothingRadius, 8.f));
+	spikyGC = -30.f / (M_PI * pow(params.smoothingRadius, 5.f));
+	viscosityLC = 40.f / (M_PI * pow(params.smoothingRadius, 5.f));
+}
 
 void Fluid::initializeParticleValues() {
 	const float particleArea = (4.f / 9.f) * params.smoothingRadius * params.smoothingRadius;
@@ -23,7 +28,8 @@ void Fluid::initializeParticleValues() {
 }
 
 void Fluid::initializeParticleGrid(int gridWidth) {
-	constexpr float spacingFactor = 2.f;
+	// Spacing factor of 2.5 results in about 20 neighbors on average
+	constexpr float spacingFactor = 2.5f;
 	const float spacing = params.smoothingRadius / spacingFactor;
 
 	std::random_device rd;
@@ -286,30 +292,27 @@ float Fluid::getPressureAtPoint(const Vector2f point) {
 
 float Fluid::poly6Kernel(float dist, float smoothingLength) {
 	if (dist < 0 || dist > smoothingLength) return 0.f;
-	const float coeff = 4 / (M_PI * pow(smoothingLength, 8.f));
-	const float factor = smoothingLength * smoothingLength - dist * dist;
-	return coeff * factor * factor * factor;
+	const float factor = params.sqSmoothingRadius - dist * dist;
+	return poly6C * factor * factor * factor;
 }
 
 Vector2f Fluid::poly6Gradient(Vector2f r, float smoothingLength) {
-	const float dist = r.magnitude();
-	if (dist <= 0 || dist > smoothingLength) return Vector2f(0.f, 0.f);
-	const float coeff = 4 / (M_PI * pow(smoothingLength, 8.f));
-	const float factor = -6 * (smoothingLength * smoothingLength - dist * dist);
-	return coeff * factor * factor * r;
+	const float sqDist = r.dot(r);
+	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
+	const float factor = -6 * (params.sqSmoothingRadius - sqDist);
+	return poly6C * factor * factor * r;
 }
 
 Vector2f Fluid::spikyGradient(Vector2f r, float smoothingLength) {
-	const float dist = r.magnitude();
-	if (dist <= 0 || dist > smoothingLength) return Vector2f(0.f, 0.f);
-	const float coeff = -30.f / (M_PI * pow(smoothingLength, 5.f));
+	const float sqDist = r.dot(r);
+	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
+	const float dist = sqrt(sqDist);
 	const float factor = smoothingLength - dist;
-	return coeff * factor * factor * r / dist;
+	return spikyGC * factor * factor * r / dist;
 }
 
 float Fluid::viscosityLaplacian(float dist, float smoothingLength) {
 	if (dist <= 0 || dist > smoothingLength) return 0.f;
-	const float coeff = 40.f / (M_PI * pow(smoothingLength, 5.f));
 	const float factor = smoothingLength - dist;
-	return coeff * factor;
+	return viscosityLC * factor;
 }

@@ -15,6 +15,7 @@ FluidParameters::FluidParameters(Vector2f downDirection,
 							stiffness(stiffness),
 							viscosity(viscosity),
 							smoothingRadius(smoothingRadius),
+							sqSmoothingRadius(smoothingRadius * smoothingRadius),
 							numParticles(numParticles) {}
 
 Vector2f FluidParameters::getGravityVector() const {

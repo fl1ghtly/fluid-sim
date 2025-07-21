@@ -22,6 +22,7 @@ class Fluid {
 		std::vector<float> pressure;
 		std::unordered_map<GridCell, std::vector<int>> spatialGrid;
 		std::vector<std::vector<int>> neighbors;
+		float poly6C, spikyGC, viscosityLC;
 
 		void initializeParticleValues();
 		void calculateDensity(float dt);

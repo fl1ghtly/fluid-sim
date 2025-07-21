@@ -10,6 +10,7 @@ class FluidParameters {
 		float stiffness;
 		float viscosity;
 		float smoothingRadius;
+		float sqSmoothingRadius;
 		int numParticles;
 		
 		FluidParameters(Vector2f downDirection, float gravity, float damping, 
