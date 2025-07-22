@@ -199,13 +199,45 @@ void Fluid::findNeighbors() {
 	// Maintain spatial locality every simulation step
 	sortZIndex();
 	buildSpatialGrid();
-	
-	std::vector<int> neighborIndices;
-	// Reserve a bit more than the expected average number of neighbors (20)
-	// to avoid constant reallocations
-	neighborIndices.reserve(64);
+
+	std::vector<int> redoIndices;
+
+	#pragma omp parallel for shared(redoIndices)
 	for (int i = 0; i < params.numParticles; i++) {
-		neighborIndices.clear();
+		std::vector<int> neighborIndices;
+		// Reserve a bit more than the expected average number of neighbors (20)
+		// to avoid constant reallocations
+		neighborIndices.reserve(64);
+		const GridCell center = {position[i], cellSize};
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
+				// NOTE: Only in a parallel loop, accessing data from this hash map sometimes
+				// returns an empty vector, even if there should be data.
+				const std::vector<int> cellIndices = spatialGrid[cell];
+				for (auto neighbor : cellIndices) {
+					const Vector2f rij = position[i] - position[neighbor];
+					const float sqDist = rij.dot(rij);
+					if (sqDist > params.sqSmoothingRadius) continue;
+					neighborIndices.push_back(neighbor);
+				}
+			}
+		}
+		neighbors[i] = std::move(neighborIndices);
+		// Add current index if there are too few neighbors found
+		if (neighbors[i].size() <= 5) {
+			#pragma omp critical
+			redoIndices.push_back(i);
+		}
+	}
+	
+	// Redo neighborhood search on indices that have very few neighbors
+	// found during the parallel search
+	// This method still keeps the performance benefit of the parallel search,
+	// whilst maintaining stability of the simulation
+	for (int i : redoIndices) {
+		std::vector<int> neighborIndices;
+		neighborIndices.reserve(64);
 		const GridCell center = {position[i], cellSize};
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
