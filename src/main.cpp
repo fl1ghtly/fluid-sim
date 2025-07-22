@@ -5,6 +5,7 @@
 #include "Vector2f.h"
 #include "ParticleSystem.h"
 #include "PressureSystem.h"
+#include "ColorMap.h"
 
 #include <tracy/Tracy.hpp>
 
@@ -13,7 +14,7 @@ int main(void) {
     constexpr float g = 9.8f;
     constexpr float damping = 0.95f;
     constexpr float restDensity = 1000.f;
-    constexpr float stiffness = 1E+5f;
+    constexpr float stiffness = 1E+3f;
     constexpr float viscosity = 1E+6f;
     constexpr float smoothingRadius = 8.f;
     constexpr int numParticles = 10000;
@@ -44,7 +45,7 @@ int main(void) {
     window.setFramerateLimit(144);
     
     ParticleSystem particles(numParticles);
-	Fluid fluid(width, height, params, -1);
+	Fluid fluid(width, height, params);
 
     // Create square grids
 	fluid.initializeParticleGrid((int)sqrt(numParticles));
@@ -64,7 +65,7 @@ int main(void) {
         
 		std::vector<Vector2f> pos = fluid.getPosition();
 		std::vector<Vector2f> vel = fluid.getVelocity();
-        particles.update(pos, vel);
+        particles.update(pos, vel, ColorMap::viridis);
 
         /*
         float maxP = 0.f;
@@ -89,7 +90,7 @@ int main(void) {
         FrameMark;
 
         if (steps >= MAX_SIM_STEPS) {
-            window.close();
+            // window.close();
         }
         steps++;
     }

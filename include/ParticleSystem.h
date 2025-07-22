@@ -8,11 +8,11 @@
 class ParticleSystem : public sf::Drawable {
 	public:
 		ParticleSystem(int count);
-		void update(std::vector<Vector2f> position, std::vector<Vector2f> velocity);
+		void update(std::vector<Vector2f> position, std::vector<Vector2f> field, std::vector<sf::Color> cmap);
 		
 	private:
 		sf::VertexArray vertices;
 
 		void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
-		sf::Color linearGradient(float t);
+		sf::Color getColorMap(float v, float vmin, float vmax, std::vector<sf::Color> cmap);
 };

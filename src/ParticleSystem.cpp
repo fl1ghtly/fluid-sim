@@ -4,14 +4,12 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 {
 }
 
- void ParticleSystem::update(std::vector<Vector2f> position, std::vector<Vector2f> velocity) {
+ void ParticleSystem::update(std::vector<Vector2f> position, std::vector<Vector2f> field, std::vector<sf::Color> cmap) {
 	// const Vector2f maxVel = *std::max_element(velocity.begin(), velocity.end());
 	// const float magnitude = maxVel.magnitude();
-	const float magnitude = 20.f;
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
-		const float t = std::clamp(velocity[i].magnitude() / magnitude, 0.f, 1.f);
-		vertices[i].color = linearGradient(t);
+		vertices[i].color = getColorMap(field[i].magnitude(), 0.f, 40.f, cmap);
 	}
  }
 
@@ -20,21 +18,20 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 	target.draw(vertices, states);
  }
 
- sf::Color ParticleSystem::linearGradient(float t) {
-	const sf::Color start = sf::Color::Blue;
-	const sf::Color mid = sf::Color::Green;
-	const sf::Color end = sf::Color::Red;
+ sf::Color ParticleSystem::getColorMap(float v, float vmin, float vmax, std::vector<sf::Color> cmap) {
+	if (v <= vmin) return cmap[0];
+	if (v >= vmax) return cmap.back();
 
-	sf::Color sampled; 
-	if (t <= 0.5) {
-		sampled.r = (mid.r * t * 2.f) + start.r * (0.5 - t) * 2.f;
-		sampled.g = (mid.g * t * 2.f) + start.g * (0.5 - t) * 2.f;
-		sampled.b = (mid.b * t * 2.f) + start.b * (0.5 - t) * 2.f;
-	} else {
-		sampled.r = end.r * (t - 0.5f) * 2.f + mid.r * (1.f - t) * 2.f;
-		sampled.g = end.g * (t - 0.5f) * 2.f + mid.g * (1.f - t) * 2.f;
-		sampled.b = end.b * (t - 0.5f) * 2.f + mid.b * (1.f - t) * 2.f;
-	}
+	const float interval = (vmax - vmin) / (cmap.size() - 1);
+	
+	const int startIndex = (int) (v - vmin) / interval; 
+	sf::Color c1 = cmap[startIndex];
+	sf::Color c2 = cmap[startIndex + 1];
+	const float t = (v - vmin - startIndex * interval) / interval;
 
-	return sampled;
+	return sf::Color(
+		(1.f - t) * c1.r + t * c2.r,
+		(1.f - t) * c1.g + t * c2.g,
+		(1.f - t) * c1.b + t * c2.b
+	);
  }
