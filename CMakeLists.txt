@@ -40,7 +40,10 @@ target_include_directories(fluid_sim PRIVATE
 
 target_link_libraries(fluid_sim PRIVATE SFML::Graphics)
 target_link_libraries(fluid_sim PRIVATE TracyClient)
+
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(fluid_sim PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(fluid_sim PRIVATE OpenMP::OpenMP_CXX)
 endif()
+find_package(TBB REQUIRED)
+target_link_libraries(fluid_sim PRIVATE TBB::tbb)

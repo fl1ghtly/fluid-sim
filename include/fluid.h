@@ -2,9 +2,9 @@
 #include <vector>
 #include <algorithm>
 #include <stdio.h>
-#include <unordered_map>
 #include <random>
 #include <ranges>
+#include <oneapi/tbb/concurrent_hash_map.h>
 #include "Vector2f.h"
 #include "GridCell.h"
 #include "FluidParameters.h"
@@ -23,7 +23,7 @@ class Fluid {
 		std::vector<float> mass;
 		std::vector<float> density;
 		std::vector<float> pressure;
-		std::unordered_map<GridCell, std::vector<int>> spatialGrid;
+		tbb::concurrent_hash_map<GridCell, std::vector<int>> spatialGrid;
 		std::vector<std::vector<int>> neighbors;
 		float poly6C, spikyGC, viscosityLC;
 

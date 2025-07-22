@@ -189,9 +189,16 @@ void Fluid::buildSpatialGrid() {
 	const float cellSize = params.smoothingRadius;
 
 	spatialGrid.clear();
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		GridCell c = {position[i], cellSize};
-		spatialGrid[c].push_back(i);
+		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
+		if (spatialGrid.insert(a, c)) {
+			a->second = {i};
+		} else {
+			a->second.push_back(i);
+		}
+		a.release();
 	}
 }
 
@@ -202,9 +209,7 @@ void Fluid::findNeighbors() {
 	sortZIndex();
 	buildSpatialGrid();
 
-	std::vector<int> redoIndices;
-
-	#pragma omp parallel for shared(redoIndices)
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		std::vector<int> neighborIndices;
 		// Reserve a bit more than the expected average number of neighbors (20)
@@ -214,37 +219,12 @@ void Fluid::findNeighbors() {
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
 				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
-				// NOTE: Only in a parallel loop, accessing data from this hash map sometimes
-				// returns an empty vector, even if there should be data.
-				const std::vector<int> cellIndices = spatialGrid[cell];
-				for (auto neighbor : cellIndices) {
-					const Vector2f rij = position[i] - position[neighbor];
-					const float sqDist = rij.dot(rij);
-					if (sqDist > params.sqSmoothingRadius) continue;
-					neighborIndices.push_back(neighbor);
+				std::vector<int> cellIndices;
+				{
+					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
+					if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
 				}
-			}
-		}
-		neighbors[i] = std::move(neighborIndices);
-		// Add current index if there are too few neighbors found
-		if (neighbors[i].size() <= 5) {
-			#pragma omp critical
-			redoIndices.push_back(i);
-		}
-	}
-	
-	// Redo neighborhood search on indices that have very few neighbors
-	// found during the parallel search
-	// This method still keeps the performance benefit of the parallel search,
-	// whilst maintaining stability of the simulation
-	for (int i : redoIndices) {
-		std::vector<int> neighborIndices;
-		neighborIndices.reserve(64);
-		const GridCell center = {position[i], cellSize};
-		for (int dx = -1; dx <= 1; dx++) {
-			for (int dy = -1; dy <= 1; dy++) {
-				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
-				const std::vector<int> cellIndices = spatialGrid[cell];
+
 				for (auto neighbor : cellIndices) {
 					const Vector2f rij = position[i] - position[neighbor];
 					const float sqDist = rij.dot(rij);
@@ -262,6 +242,7 @@ void Fluid::sortZIndex() {
 	const float cellSize = params.smoothingRadius;
 	std::vector<unsigned int> zIndex(params.numParticles);
 
+	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
 		const GridCell c = {position[i], cellSize};
 		zIndex[i] = c.zOrder;
@@ -298,7 +279,12 @@ float Fluid::getPressureAtPoint(const Vector2f point) {
 	for (int dx = -1; dx <= 1; dx++) {
 		for (int dy = -1; dy <= 1; dy++) {
 			GridCell cell = {center.x + dx, center.y + dy, cellSize};
-			const std::vector<int> cellIndices = spatialGrid[cell];
+			std::vector<int> cellIndices;
+			{
+				tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
+				if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
+			}
+
 			for (auto neighbor : cellIndices) {
 				p += pressure[neighbor];			
 			}
