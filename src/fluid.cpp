@@ -130,15 +130,17 @@ void Fluid::applyPressureForce(float dt) {
 	std::vector<Vector2f> forces(params.numParticles);
 	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
-		Vector2f force(0.f, 0.f);
+		Vector2f sum(0.f, 0.f);
+		const float p_rho_i = pressure[i] / (density[i] * density[i]);
 		for (int j : neighbors[i]) {
-			const float volume = mass[j] / density[j];
-			const float avgPressure = (pressure[i] + pressure[j]) / 2.f;
+			if (j == i) continue;
+			const float p_rho_j = pressure[j] / (density[j] * density[j]);
+			const float combined = p_rho_i + p_rho_j;
 			const Vector2f rij = position[i] - position[j];
 			const Vector2f grad = spikyGradient(rij, params.smoothingRadius);
-			force += -volume * avgPressure * grad;
+			sum += mass[j] * combined * grad;
 		}
-		forces[i] =  force;
+		forces[i] = -mass[i] * sum;
 	}
 	
 	#pragma omp parallel for
