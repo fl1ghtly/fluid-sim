@@ -43,9 +43,8 @@ int main(void) {
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Simulation Simulation");
     window.setFramerateLimit(144);
     
-    ParticleSystem particles(numParticles);
-	Simulation sim(width, height, params);
-
+	Simulation sim(width, height, params, -1.f);
+    
     // Create square grids
 	sim.initializeParticleGrid(
         {width * 0.25f, height * 0.25f}, 
@@ -57,6 +56,8 @@ int main(void) {
         (int)sqrt(numParticles / 2.f), 
         numParticles / 2.f
     );
+    
+    ParticleSystem particles(sim.getNumParticles());
 
     constexpr int MAX_SIM_STEPS = 1200;
     int steps = 0;

@@ -291,6 +291,10 @@ std::vector<float> Simulation::getDensity() {
 	return density;
 }
 
+int Simulation::getNumParticles() {
+	return numParticles;
+}
+
 float Simulation::getPressureAtPoint(const Vector2f point) {
 	const float cellSize = params.smoothingRadius;
 	const GridCell center = {point, cellSize};
