@@ -9,7 +9,7 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 	// const float magnitude = maxVel.magnitude();
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
-		vertices[i].color = getColorMap(field[i].magnitude(), 0.f, 40.f, cmap);
+		vertices[i].color = getColorMap(field[i].magnitude(), 0.f, 100.f, cmap);
 	}
  }
 

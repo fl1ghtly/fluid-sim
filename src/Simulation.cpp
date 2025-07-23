@@ -1,6 +1,6 @@
-#include "fluid.h"
+#include "Simulation.h"
 
-Fluid::Fluid(int width, int height, FluidParameters& params, float fixedTimestep) 
+Simulation::Simulation(int width, int height, FluidParameters& params, float fixedTimestep) 
 	: width(width), 
 	  height(height), 
 	  currentStep(0),
@@ -19,7 +19,7 @@ Fluid::Fluid(int width, int height, FluidParameters& params, float fixedTimestep
 	viscosityLC = 40.f / (M_PI * pow(params.smoothingRadius, 5.f));
 }
 
-void Fluid::initializeParticleValues() {
+void Simulation::initializeParticleValues() {
 	const float particleArea = (4.f / 9.f) * params.smoothingRadius * params.smoothingRadius;
 	const float particleMass = params.restDensity * particleArea;
 	std::fill(velocity.begin(), velocity.end(), Vector2f(0.f, 0.f));
@@ -28,7 +28,7 @@ void Fluid::initializeParticleValues() {
 	std::fill(pressure.begin(), pressure.end(), 0.f);
 }
 
-void Fluid::initializeParticleGrid(int gridWidth) {
+void Simulation::initializeParticleGrid(int gridWidth) {
 	// Spacing factor of 2.5 results in about 20 neighbors on average
 	constexpr float spacingFactor = 2.5f;
 	const float spacing = params.smoothingRadius / spacingFactor;
@@ -47,7 +47,7 @@ void Fluid::initializeParticleGrid(int gridWidth) {
 	initializeParticleValues();
 }
 
-void Fluid::initializeParticleRandom() {
+void Simulation::initializeParticleRandom() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution<float> xDistr(0, width);
@@ -58,7 +58,7 @@ void Fluid::initializeParticleRandom() {
 	initializeParticleValues();
 }
 
-void Fluid::update() {
+void Simulation::update() {
 	ZoneScoped;
 	const float deltaTime = calculateTimeStep();
 
@@ -71,7 +71,7 @@ void Fluid::update() {
 	currentStep++;
 }
 
-void Fluid::calculateDensity(float dt) {
+void Simulation::calculateDensity(float dt) {
 	ZoneScoped;
 	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
@@ -87,7 +87,7 @@ void Fluid::calculateDensity(float dt) {
 	}
 }
 
-void Fluid::calculatePressure() {
+void Simulation::calculatePressure() {
 	ZoneScoped;
 	#pragma omp parallel for
 	for (int i = 0; i < params.numParticles; i++) {
@@ -95,7 +95,7 @@ void Fluid::calculatePressure() {
 	}
 }
 
-void Fluid::applyNonPressureForce(float dt) {
+void Simulation::applyNonPressureForce(float dt) {
 	ZoneScoped;
 	std::vector<Vector2f> forces(params.numParticles);
 	#pragma omp parallel for
@@ -125,7 +125,7 @@ void Fluid::applyNonPressureForce(float dt) {
 	}
 }
 
-void Fluid::applyPressureForce(float dt) {
+void Simulation::applyPressureForce(float dt) {
 	ZoneScoped;
 	std::vector<Vector2f> forces(params.numParticles);
 	#pragma omp parallel for
@@ -150,7 +150,7 @@ void Fluid::applyPressureForce(float dt) {
 	}
 }
 
-void Fluid::applyBoundaryCondition() {
+void Simulation::applyBoundaryCondition() {
 	ZoneScoped;
 	for (int i = 0; i < params.numParticles; i++) {
 		auto& p = position[i];
@@ -174,7 +174,7 @@ void Fluid::applyBoundaryCondition() {
 	}
 }
 
-float Fluid::calculateTimeStep() {
+float Simulation::calculateTimeStep() {
 	if (fixedTimestep > 0.f) return fixedTimestep;
 	const Vector2f v = *std::max_element(velocity.begin(), velocity.end());
 	const float vMax = v.magnitude();
@@ -183,7 +183,7 @@ float Fluid::calculateTimeStep() {
 	return std::clamp(timestep, 1E-6f, 1.f/120.f);
 }
 
-void Fluid::buildSpatialGrid() {
+void Simulation::buildSpatialGrid() {
 	ZoneScoped;
 	// Cell Size = Kernel Support Length is optimal
 	const float cellSize = params.smoothingRadius;
@@ -202,7 +202,7 @@ void Fluid::buildSpatialGrid() {
 	}
 }
 
-void Fluid::findNeighbors() {
+void Simulation::findNeighbors() {
 	ZoneScoped;
 	const float cellSize = params.smoothingRadius;
 	// Maintain spatial locality every simulation step
@@ -237,7 +237,7 @@ void Fluid::findNeighbors() {
 	}
 }
 
-void Fluid::sortZIndex() {
+void Simulation::sortZIndex() {
 	ZoneScoped;
 	const float cellSize = params.smoothingRadius;
 	std::vector<unsigned int> zIndex(params.numParticles);
@@ -263,15 +263,15 @@ void Fluid::sortZIndex() {
 	});
 }
 
-std::vector<Vector2f> Fluid::getPosition() {
+std::vector<Vector2f> Simulation::getPosition() {
 	return position;
 }
 
-std::vector<Vector2f> Fluid::getVelocity() {
+std::vector<Vector2f> Simulation::getVelocity() {
 	return velocity;
 }
 
-float Fluid::getPressureAtPoint(const Vector2f point) {
+float Simulation::getPressureAtPoint(const Vector2f point) {
 	const float cellSize = params.smoothingRadius;
 	const GridCell center = {point, cellSize};
 	float p = 0.f;
@@ -293,20 +293,20 @@ float Fluid::getPressureAtPoint(const Vector2f point) {
 	return p;
 }
 
-float Fluid::poly6Kernel(float dist, float smoothingLength) {
+float Simulation::poly6Kernel(float dist, float smoothingLength) {
 	if (dist < 0 || dist > smoothingLength) return 0.f;
 	const float factor = params.sqSmoothingRadius - dist * dist;
 	return poly6C * factor * factor * factor;
 }
 
-Vector2f Fluid::poly6Gradient(Vector2f r, float smoothingLength) {
+Vector2f Simulation::poly6Gradient(Vector2f r, float smoothingLength) {
 	const float sqDist = r.dot(r);
 	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
 	const float factor = -6 * (params.sqSmoothingRadius - sqDist);
 	return poly6C * factor * factor * r;
 }
 
-Vector2f Fluid::spikyGradient(Vector2f r, float smoothingLength) {
+Vector2f Simulation::spikyGradient(Vector2f r, float smoothingLength) {
 	const float sqDist = r.dot(r);
 	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
 	const float dist = sqrt(sqDist);
@@ -314,7 +314,7 @@ Vector2f Fluid::spikyGradient(Vector2f r, float smoothingLength) {
 	return spikyGC * factor * factor * r / dist;
 }
 
-float Fluid::viscosityLaplacian(float dist, float smoothingLength) {
+float Simulation::viscosityLaplacian(float dist, float smoothingLength) {
 	if (dist <= 0 || dist > smoothingLength) return 0.f;
 	const float factor = smoothingLength - dist;
 	return viscosityLC * factor;

@@ -25,7 +25,7 @@ FetchContent_MakeAvailable(tracy)
 # Add executable with all source files
 add_executable(fluid_sim
     src/main.cpp
-    src/fluid.cpp
+    src/Simulation.cpp
     src/Vector2f.cpp
     src/GridCell.cpp
     src/ParticleSystem.cpp

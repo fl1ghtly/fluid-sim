@@ -11,7 +11,7 @@
 
 #include <tracy/Tracy.hpp>
 
-class Fluid {
+class Simulation {
 	private:
 		int width;
 		int height;
@@ -42,7 +42,7 @@ class Fluid {
 		Vector2f spikyGradient(Vector2f r, float smoothingLength);
 		float viscosityLaplacian(float dist, float smoothingLength);
 	public:
-		Fluid(int width, int heigh, FluidParameters& params, float fixedTimestep=1E-2f);
+		Simulation(int width, int heigh, FluidParameters& params, float fixedTimestep=1E-2f);
 		void update();
 		std::vector<Vector2f> getPosition();
 		std::vector<Vector2f> getVelocity();

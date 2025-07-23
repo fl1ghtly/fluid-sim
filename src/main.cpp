@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
-#include "fluid.h"
+#include "Simulation.h"
 #include "FluidParameters.h"
 #include "Vector2f.h"
 #include "ParticleSystem.h"
@@ -17,7 +17,7 @@ int main(void) {
     constexpr float stiffness = 1E+3f;
     constexpr float viscosity = 1E+6f;
     constexpr float smoothingRadius = 8.f;
-    constexpr int numParticles = 10000;
+    constexpr int numParticles = 50000;
     constexpr int width = 1920;
     constexpr int height = 1080;
 
@@ -41,14 +41,14 @@ int main(void) {
     PressureSystem pressureGradient(width, height, GRID_SIZE);
     */
 
-	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation");
+	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Simulation Simulation");
     window.setFramerateLimit(144);
     
     ParticleSystem particles(numParticles);
-	Fluid fluid(width, height, params);
+	Simulation sim(width, height, params);
 
     // Create square grids
-	fluid.initializeParticleGrid((int)sqrt(numParticles));
+	sim.initializeParticleGrid((int)sqrt(numParticles));
 
     constexpr int MAX_SIM_STEPS = 1200;
     int steps = 0;
@@ -63,8 +63,8 @@ int main(void) {
             }
         }
         
-		std::vector<Vector2f> pos = fluid.getPosition();
-		std::vector<Vector2f> vel = fluid.getVelocity();
+		std::vector<Vector2f> pos = sim.getPosition();
+		std::vector<Vector2f> vel = sim.getVelocity();
         particles.update(pos, vel, ColorMap::viridis);
 
         /*
@@ -72,7 +72,7 @@ int main(void) {
         float minP = 0.f;
         for (int i = 0; i < GRID_SIZE + 1; i++) {
             for (int j = 0; j < GRID_SIZE + 1; j++) {
-                const float p = fluid.getPressureAtPoint({i * GRID_X, j * GRID_Y});
+                const float p = sim.getPressureAtPoint({i * GRID_X, j * GRID_Y});
                 pressureGrid[i][j] = p;
                 if (p > maxP) maxP = p;
                 if (p < minP) minP = p;
@@ -86,7 +86,7 @@ int main(void) {
         // window.draw(pressureGradient);
         window.draw(particles);
         window.display();
-        fluid.update();
+        sim.update();
         FrameMark;
 
         if (steps >= MAX_SIM_STEPS) {
