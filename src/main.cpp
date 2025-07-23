@@ -22,7 +22,6 @@ int main(void) {
     constexpr int height = 1080;
 
     FluidParameters params(
-        downDir, 
         g, 
         damping, 
         restDensity, 
@@ -43,7 +42,7 @@ int main(void) {
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Simulation Simulation");
     window.setFramerateLimit(144);
     
-	Simulation sim(width, height, params, -1.f);
+	Simulation sim(width, height, params, downDir, -1.f);
     
     // Create square grids
 	sim.initializeParticleGrid(

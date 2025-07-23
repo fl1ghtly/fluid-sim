@@ -1,7 +1,6 @@
 #include "FluidParameters.h"
 
 FluidParameters::FluidParameters(
-		Vector2f downDirection, 
 		float gravity, 
 		float damping, 
 		float restDensity, 
@@ -9,15 +8,10 @@ FluidParameters::FluidParameters(
 		float viscosity, 
 		float smoothingRadius
 	)
-	: downDirection(downDirection),
-	gravity(gravity),
+	: gravity(gravity),
 	damping(damping),
 	restDensity(restDensity),
 	stiffness(stiffness),
 	viscosity(viscosity),
 	smoothingRadius(smoothingRadius),
 	sqSmoothingRadius(smoothingRadius * smoothingRadius) {}
-
-Vector2f FluidParameters::getGravityVector() const {
-	return downDirection * gravity;
-}

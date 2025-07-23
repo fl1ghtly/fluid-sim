@@ -18,6 +18,7 @@ class Simulation {
 		int currentStep;
 		int numParticles;
 		FluidParameters& params;
+		Vector2f downDir;
 		float fixedTimestep;
 		std::vector<Vector2f> position;
 		std::vector<Vector2f> velocity;
@@ -43,13 +44,20 @@ class Simulation {
 		Vector2f spikyGradient(Vector2f r, float smoothingLength);
 		float viscosityLaplacian(float dist, float smoothingLength);
 	public:
-		Simulation(int width, int heigh, FluidParameters& params, float fixedTimestep=1E-2f);
+		Simulation(
+			int width, 
+			int heigh, 
+			FluidParameters& params, 
+			Vector2f downDir={0.f, 1.f}, 
+			float fixedTimestep=1E-2f
+		);
 		void update();
 		std::vector<Vector2f> getPosition();
 		std::vector<Vector2f> getVelocity();
 		std::vector<float> getPressure();
 		std::vector<float> getDensity();
 		int getNumParticles();
+		void setDownDirection(Vector2f d);
 		float getPressureAtPoint(const Vector2f pos);
 		void initializeParticleGrid(Vector2f center, int gridWidth, int amount);
 		void initializeParticleRandom(Vector2f min, Vector2f max, int amount);

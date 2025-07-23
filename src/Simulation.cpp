@@ -1,11 +1,18 @@
 #include "Simulation.h"
 
-Simulation::Simulation(int width, int height, FluidParameters& params, float fixedTimestep) 
+Simulation::Simulation(
+	int width, 
+	int height, 
+	FluidParameters& params,
+	Vector2f downDir, 
+	float fixedTimestep
+) 
 	: width(width), 
 	  height(height), 
 	  currentStep(0),
 	  numParticles(0),
 	  params(params),
+	  downDir(downDir),
 	  fixedTimestep(fixedTimestep)
 {
 	// Kernel Coefficients
@@ -114,7 +121,7 @@ void Simulation::applyNonPressureForce(float dt) {
 	for (int i = 0; i < numParticles; i++) {
 		// Force due to gravity
 		Vector2f gForce(0.f, 0.f); 
-		gForce = params.getGravityVector() * mass[i];
+		gForce = params.gravity * downDir * mass[i];
 		
 		// Force due to viscosity
 		Vector2f vForce(0.f, 0.f);
@@ -293,6 +300,10 @@ std::vector<float> Simulation::getDensity() {
 
 int Simulation::getNumParticles() {
 	return numParticles;
+}
+
+void Simulation::setDownDirection(Vector2f d) {
+	downDir = d.normalize();
 }
 
 float Simulation::getPressureAtPoint(const Vector2f point) {

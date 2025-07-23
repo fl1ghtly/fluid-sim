@@ -3,7 +3,6 @@
 
 class FluidParameters {
 	public:
-		Vector2f downDirection;
 		float gravity; 
 		float damping;
 		float restDensity;
@@ -13,7 +12,6 @@ class FluidParameters {
 		float sqSmoothingRadius;
 		
 		FluidParameters(
-			Vector2f downDirection, 
 			float gravity, 
 			float damping, 
 			float restDensity, 
@@ -21,6 +19,4 @@ class FluidParameters {
 			float viscosity, 
 			float smoothingRadius
 		);
-
-		Vector2f getGravityVector() const;
 };
