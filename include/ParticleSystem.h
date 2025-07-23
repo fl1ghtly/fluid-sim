@@ -8,7 +8,8 @@
 class ParticleSystem : public sf::Drawable {
 	public:
 		ParticleSystem(int count);
-		void update(std::vector<Vector2f> position, std::vector<Vector2f> field, std::vector<sf::Color> cmap);
+		void update(std::vector<Vector2f> position, std::vector<Vector2f> field, float min, float max, std::vector<sf::Color> cmap);
+		void update(std::vector<Vector2f> position, std::vector<float> field, float min, float max, std::vector<sf::Color> cmap);
 		
 	private:
 		sf::VertexArray vertices;

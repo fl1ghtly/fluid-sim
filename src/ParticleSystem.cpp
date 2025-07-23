@@ -4,12 +4,27 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 {
 }
 
- void ParticleSystem::update(std::vector<Vector2f> position, std::vector<Vector2f> field, std::vector<sf::Color> cmap) {
-	// const Vector2f maxVel = *std::max_element(velocity.begin(), velocity.end());
-	// const float magnitude = maxVel.magnitude();
+ void ParticleSystem::update(
+	std::vector<Vector2f> position, 
+	std::vector<Vector2f> field, 
+	float min, 
+	float max, 
+	std::vector<sf::Color> cmap) {
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
-		vertices[i].color = getColorMap(field[i].magnitude(), 0.f, 100.f, cmap);
+		vertices[i].color = getColorMap(field[i].magnitude(), min, max, cmap);
+	}
+ }
+
+ void ParticleSystem::update(
+	std::vector<Vector2f> position, 
+	std::vector<float> field, 
+	float min, 
+	float max, 
+	std::vector<sf::Color> cmap) {
+	for (int i = 0; i < position.size(); i++) {
+		vertices[i].position = {position[i].x, position[i].y};
+		vertices[i].color = getColorMap(field[i], min, max, cmap);
 	}
  }
 

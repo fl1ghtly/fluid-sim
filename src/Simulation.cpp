@@ -271,6 +271,14 @@ std::vector<Vector2f> Simulation::getVelocity() {
 	return velocity;
 }
 
+std::vector<float> Simulation::getPressure() {
+	return pressure;
+}
+
+std::vector<float> Simulation::getDensity() {
+	return density;
+}
+
 float Simulation::getPressureAtPoint(const Vector2f point) {
 	const float cellSize = params.smoothingRadius;
 	const GridCell center = {point, cellSize};

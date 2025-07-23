@@ -46,6 +46,8 @@ class Simulation {
 		void update();
 		std::vector<Vector2f> getPosition();
 		std::vector<Vector2f> getVelocity();
+		std::vector<float> getPressure();
+		std::vector<float> getDensity();
 		float getPressureAtPoint(const Vector2f pos);
 		void initializeParticleGrid(int gridWidth);
 		void initializeParticleRandom();
