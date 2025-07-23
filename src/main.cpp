@@ -48,7 +48,7 @@ int main(void) {
 	Simulation sim(width, height, params);
 
     // Create square grids
-	sim.initializeParticleGrid((int)sqrt(numParticles));
+	sim.initializeParticleGrid(width / 2.f, height / 2.f, (int)sqrt(numParticles));
 
     constexpr int MAX_SIM_STEPS = 1200;
     int steps = 0;

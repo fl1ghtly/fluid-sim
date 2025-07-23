@@ -28,18 +28,20 @@ void Simulation::initializeParticleValues() {
 	std::fill(pressure.begin(), pressure.end(), 0.f);
 }
 
-void Simulation::initializeParticleGrid(int gridWidth) {
+void Simulation::initializeParticleGrid(float x, float y, int gridWidth) {
 	// Spacing factor of 2.5 results in about 20 neighbors on average
 	constexpr float spacingFactor = 2.5f;
 	const float spacing = params.smoothingRadius / spacingFactor;
+	
+	const float gridHeight = params.numParticles / gridWidth;
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution<float> jitter(0, spacing);
 	
-	Vector2f center(width / 2, height / 2);
-	center.x -= 2 * gridWidth;
-	center.y -= 2 * params.numParticles / gridWidth;
+	// X and Y alone define the top left corner of grid, therefore
+	// we need to translate the center of the grid to the top left
+	Vector2f center(x - spacing * gridWidth / 2.f, y - spacing * gridHeight / 2.f);
 	for (int i = 0; i < params.numParticles; i++) {
 		position[i] = Vector2f(center.x + jitter(gen) + spacing * (i % gridWidth), 
 							   center.y + jitter(gen) + spacing * (i / gridWidth));
