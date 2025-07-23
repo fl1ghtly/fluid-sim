@@ -16,6 +16,7 @@ class Simulation {
 		int width;
 		int height;
 		int currentStep;
+		int numParticles;
 		FluidParameters& params;
 		float fixedTimestep;
 		std::vector<Vector2f> position;
@@ -27,7 +28,7 @@ class Simulation {
 		std::vector<std::vector<int>> neighbors;
 		float poly6C, spikyGC, viscosityLC;
 
-		void initializeParticleValues();
+		void initializeParticleValues(int amount);
 		void calculateDensity(float dt);
 		void calculatePressure();
 		void applyNonPressureForce(float dt);
@@ -49,6 +50,6 @@ class Simulation {
 		std::vector<float> getPressure();
 		std::vector<float> getDensity();
 		float getPressureAtPoint(const Vector2f pos);
-		void initializeParticleGrid(float x, float y, int gridWidth);
-		void initializeParticleRandom();
+		void initializeParticleGrid(Vector2f center, int gridWidth, int amount);
+		void initializeParticleRandom(Vector2f min, Vector2f max, int amount);
 };

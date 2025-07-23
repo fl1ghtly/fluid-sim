@@ -4,14 +4,9 @@ Simulation::Simulation(int width, int height, FluidParameters& params, float fix
 	: width(width), 
 	  height(height), 
 	  currentStep(0),
+	  numParticles(0),
 	  params(params),
-	  fixedTimestep(fixedTimestep),
-	  position(params.numParticles), 
-	  velocity(params.numParticles), 
-	  mass(params.numParticles), 
-	  density(params.numParticles), 
-	  pressure(params.numParticles),
-	  neighbors(params.numParticles)
+	  fixedTimestep(fixedTimestep)
 {
 	// Kernel Coefficients
 	poly6C = 4 / (M_PI * pow(params.smoothingRadius, 8.f));
@@ -19,21 +14,32 @@ Simulation::Simulation(int width, int height, FluidParameters& params, float fix
 	viscosityLC = 40.f / (M_PI * pow(params.smoothingRadius, 5.f));
 }
 
-void Simulation::initializeParticleValues() {
+void Simulation::initializeParticleValues(int amount) {
 	const float particleArea = (4.f / 9.f) * params.smoothingRadius * params.smoothingRadius;
 	const float particleMass = params.restDensity * particleArea;
+
+	numParticles += amount;
+	position.reserve(numParticles);
+	velocity.resize(numParticles);
+	mass.resize(numParticles);
+	density.resize(numParticles);
+	pressure.resize(numParticles);
+	neighbors.resize(numParticles);
+	
 	std::fill(velocity.begin(), velocity.end(), Vector2f(0.f, 0.f));
 	std::fill(mass.begin(), mass.end(), particleMass);
 	std::fill(density.begin(), density.end(), params.restDensity);
 	std::fill(pressure.begin(), pressure.end(), 0.f);
 }
 
-void Simulation::initializeParticleGrid(float x, float y, int gridWidth) {
+void Simulation::initializeParticleGrid(Vector2f center, int gridWidth, int amount) {
 	// Spacing factor of 2.5 results in about 20 neighbors on average
 	constexpr float spacingFactor = 2.5f;
 	const float spacing = params.smoothingRadius / spacingFactor;
 	
-	const float gridHeight = params.numParticles / gridWidth;
+	const float gridHeight = amount / gridWidth;
+	
+	initializeParticleValues(amount);
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -41,23 +47,27 @@ void Simulation::initializeParticleGrid(float x, float y, int gridWidth) {
 	
 	// X and Y alone define the top left corner of grid, therefore
 	// we need to translate the center of the grid to the top left
-	Vector2f center(x - spacing * gridWidth / 2.f, y - spacing * gridHeight / 2.f);
-	for (int i = 0; i < params.numParticles; i++) {
-		position[i] = Vector2f(center.x + jitter(gen) + spacing * (i % gridWidth), 
-							   center.y + jitter(gen) + spacing * (i / gridWidth));
+	center.x -= spacing * gridWidth / 2.f;
+	center.y -= spacing * gridHeight / 2.f;
+	for (int i = 0; i < amount; i++) {
+		position.push_back(Vector2f(
+			center.x + jitter(gen) + spacing * (i % gridWidth), 
+			center.y + jitter(gen) + spacing * (i / gridWidth)
+		));
 	}
-	initializeParticleValues();
 }
 
-void Simulation::initializeParticleRandom() {
+void Simulation::initializeParticleRandom(Vector2f min, Vector2f max, int amount) {
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> xDistr(0, width);
-	std::uniform_real_distribution<float> yDistr(0, height);
-	for (int i = 0; i < params.numParticles; i++) {
-		position[i] = Vector2f(xDistr(gen), yDistr(gen));
+	std::uniform_real_distribution<float> xDistr(min.x, max.x);
+	std::uniform_real_distribution<float> yDistr(min.y, max.y);
+
+	initializeParticleValues(amount);
+	
+	for (int i = 0; i < amount; i++) {
+		position.push_back(Vector2f(xDistr(gen), yDistr(gen)));
 	}
-	initializeParticleValues();
 }
 
 void Simulation::update() {
@@ -76,7 +86,7 @@ void Simulation::update() {
 void Simulation::calculateDensity(float dt) {
 	ZoneScoped;
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
 		for (auto j : neighbors[i]) {
 			const Vector2f rij = position[i] - position[j];
@@ -92,16 +102,16 @@ void Simulation::calculateDensity(float dt) {
 void Simulation::calculatePressure() {
 	ZoneScoped;
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		pressure[i] = params.stiffness * (pow(density[i] / params.restDensity, 7.f) - 1);
 	}
 }
 
 void Simulation::applyNonPressureForce(float dt) {
 	ZoneScoped;
-	std::vector<Vector2f> forces(params.numParticles);
+	std::vector<Vector2f> forces(numParticles);
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		// Force due to gravity
 		Vector2f gForce(0.f, 0.f); 
 		gForce = params.getGravityVector() * mass[i];
@@ -121,7 +131,7 @@ void Simulation::applyNonPressureForce(float dt) {
 	}
 	
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		velocity[i] += dt * forces[i] / mass[i];
 		position[i] += dt * velocity[i];
 	}
@@ -129,9 +139,9 @@ void Simulation::applyNonPressureForce(float dt) {
 
 void Simulation::applyPressureForce(float dt) {
 	ZoneScoped;
-	std::vector<Vector2f> forces(params.numParticles);
+	std::vector<Vector2f> forces(numParticles);
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		Vector2f sum(0.f, 0.f);
 		const float p_rho_i = pressure[i] / (density[i] * density[i]);
 		for (int j : neighbors[i]) {
@@ -146,7 +156,7 @@ void Simulation::applyPressureForce(float dt) {
 	}
 	
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		velocity[i] += dt * forces[i] / mass[i];
 		position[i] += dt * velocity[i];
 	}
@@ -154,7 +164,7 @@ void Simulation::applyPressureForce(float dt) {
 
 void Simulation::applyBoundaryCondition() {
 	ZoneScoped;
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		auto& p = position[i];
 		auto& v = velocity[i];
 
@@ -192,7 +202,7 @@ void Simulation::buildSpatialGrid() {
 
 	spatialGrid.clear();
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		GridCell c = {position[i], cellSize};
 		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
 		if (spatialGrid.insert(a, c)) {
@@ -212,7 +222,7 @@ void Simulation::findNeighbors() {
 	buildSpatialGrid();
 
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		std::vector<int> neighborIndices;
 		// Reserve a bit more than the expected average number of neighbors (20)
 		// to avoid constant reallocations
@@ -242,10 +252,10 @@ void Simulation::findNeighbors() {
 void Simulation::sortZIndex() {
 	ZoneScoped;
 	const float cellSize = params.smoothingRadius;
-	std::vector<unsigned int> zIndex(params.numParticles);
+	std::vector<unsigned int> zIndex(numParticles);
 
 	#pragma omp parallel for
-	for (int i = 0; i < params.numParticles; i++) {
+	for (int i = 0; i < numParticles; i++) {
 		const GridCell c = {position[i], cellSize};
 		zIndex[i] = c.zOrder;
 	}

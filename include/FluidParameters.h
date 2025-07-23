@@ -11,11 +11,16 @@ class FluidParameters {
 		float viscosity;
 		float smoothingRadius;
 		float sqSmoothingRadius;
-		int numParticles;
 		
-		FluidParameters(Vector2f downDirection, float gravity, float damping, 
-						float restDensity, float stiffness, float viscosity, 
-						float smoothingRadius, int numParticles);
+		FluidParameters(
+			Vector2f downDirection, 
+			float gravity, 
+			float damping, 
+			float restDensity, 
+			float stiffness, 
+			float viscosity, 
+			float smoothingRadius
+		);
 
 		Vector2f getGravityVector() const;
 };

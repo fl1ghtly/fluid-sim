@@ -28,8 +28,7 @@ int main(void) {
         restDensity, 
         stiffness, 
         viscosity, 
-        smoothingRadius, 
-        numParticles
+        smoothingRadius
     );
 
     /*
@@ -48,7 +47,16 @@ int main(void) {
 	Simulation sim(width, height, params);
 
     // Create square grids
-	sim.initializeParticleGrid(width / 2.f, height / 2.f, (int)sqrt(numParticles));
+	sim.initializeParticleGrid(
+        {width * 0.25f, height * 0.25f}, 
+        (int)sqrt(numParticles / 2.f), 
+        numParticles / 2.f
+    );
+	sim.initializeParticleGrid(
+        {width * 0.75f, height * 0.75f}, 
+        (int)sqrt(numParticles / 2.f), 
+        numParticles / 2.f
+    );
 
     constexpr int MAX_SIM_STEPS = 1200;
     int steps = 0;
