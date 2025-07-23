@@ -5,11 +5,12 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 }
 
  void ParticleSystem::update(
-	std::vector<Vector2f> position, 
-	std::vector<Vector2f> field, 
-	float min, 
-	float max, 
-	std::vector<sf::Color> cmap) {
+		std::vector<Vector2f> position, 
+		std::vector<Vector2f> field, 
+		float min, 
+		float max, 
+		std::vector<sf::Color> cmap) {
+	#pragma omp parallel for
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
 		vertices[i].color = getColorMap(field[i].magnitude(), min, max, cmap);
@@ -17,11 +18,12 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
  }
 
  void ParticleSystem::update(
-	std::vector<Vector2f> position, 
-	std::vector<float> field, 
-	float min, 
-	float max, 
-	std::vector<sf::Color> cmap) {
+		std::vector<Vector2f> position, 
+		std::vector<float> field, 
+		float min, 
+		float max, 
+		std::vector<sf::Color> cmap) {
+	#pragma omp parallel for
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
 		vertices[i].color = getColorMap(field[i], min, max, cmap);

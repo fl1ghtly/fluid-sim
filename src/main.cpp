@@ -73,7 +73,7 @@ int main(void) {
         
 		std::vector<Vector2f> pos = sim.getPosition();
 		std::vector<Vector2f> vel = sim.getVelocity();
-        particles.update(pos, vel, ColorMap::viridis);
+        particles.update(pos, vel, 0.f, 100.f, ColorMap::viridis);
 
         /*
         float maxP = 0.f;
