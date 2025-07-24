@@ -60,15 +60,15 @@ int main(void) {
     );
     
     // Box
-    Boundary b1(10000, smoothingRadius);
+    Boundary b1(smoothingRadius);
     b1.createBox({0.25f * width, 0.6f * height}, {0.33f * width, 0.8f * height});
 
     // Triangle
-    Boundary b2(10000, smoothingRadius);
+    Boundary b2(smoothingRadius);
     b2.createPolygon({{200.f, 800.f}, {400.f, 800.f}, {300.f, 1000.f}});
 
     // Circle
-    Boundary b3(10000, smoothingRadius);
+    Boundary b3(smoothingRadius);
     b3.createCircle({width / 2.f, height - 200.f}, 100.f);
 
     std::vector<Boundary> boundaries = {b1, b2, b3};

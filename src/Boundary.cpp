@@ -2,18 +2,23 @@
 
 constexpr float spacingFactor = 2.5f;
 
+Boundary::Boundary(float smoothingRadius) : smoothingRadius(smoothingRadius) {
+	boundaryMass = INFINITY;
+	isStatic = true;
+	boundaryVel = {0.f, 0.f};
+	particleSpacing = smoothingRadius / spacingFactor;
+}
+
 Boundary::Boundary(
+	float smoothingRadius, 
 	float mass, 
-	float smoothingRadius,
-	bool isStatic,
 	Vector2f initialVel
-	) : boundaryMass(mass),
-	smoothingRadius(smoothingRadius),
-	isStatic(isStatic),
-	boundaryVel(initialVel)
-	{
-		particleSpacing = smoothingRadius / spacingFactor;
-	}
+) : smoothingRadius(smoothingRadius),
+boundaryMass(mass),
+boundaryVel(initialVel) {
+	isStatic = false;
+	particleSpacing = smoothingRadius / spacingFactor;
+}
 
 void Boundary::applyForce(Vector2f force, float dt) {
 	if (isStatic) return;

@@ -6,11 +6,11 @@
 
 class Boundary {
 	public:
+		Boundary(float smoothingRadius);
 		Boundary(
-			float mass, 
 			float smoothingRadius,
-			bool isStatic=true,
-			Vector2f initialVel={0.f, 0.f} 
+			float mass,
+			Vector2f initialVel={0.f, 0.f}
 		);
 		void createPolygon(std::vector<Vector2f> vertices);
 		void createBox(Vector2f topLeft, Vector2f bottomRight);
@@ -38,5 +38,4 @@ class Boundary {
 		void buildSpatialGrid();
 		void findNeighbors();
 		float poly6Kernel(float dist);
-
 };
