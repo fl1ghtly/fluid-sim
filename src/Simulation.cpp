@@ -415,21 +415,21 @@ float Simulation::poly6Kernel(float dist, float smoothingLength) {
 
 Vector2f Simulation::poly6Gradient(Vector2f r, float smoothingLength) {
 	const float sqDist = r.dot(r);
-	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
+	if (sqDist < 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
 	const float factor = -6 * (params.sqSmoothingRadius - sqDist);
 	return poly6C * factor * factor * r;
 }
 
 Vector2f Simulation::spikyGradient(Vector2f r, float smoothingLength) {
 	const float sqDist = r.dot(r);
-	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
+	if (sqDist < 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
 	const float dist = sqrt(sqDist);
 	const float factor = smoothingLength - dist;
 	return spikyGC * factor * factor * r / dist;
 }
 
 float Simulation::viscosityLaplacian(float dist, float smoothingLength) {
-	if (dist <= 0 || dist > smoothingLength) return 0.f;
+	if (dist < 0 || dist > smoothingLength) return 0.f;
 	const float factor = smoothingLength - dist;
 	return viscosityLC * factor;
 }
