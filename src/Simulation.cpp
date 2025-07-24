@@ -32,6 +32,7 @@ void Simulation::initializeParticleValues(int amount) {
 	density.resize(numParticles);
 	pressure.resize(numParticles);
 	neighbors.resize(numParticles);
+	boundaryNeighbors.resize(numParticles);
 	
 	std::fill(velocity.begin(), velocity.end(), Vector2f(0.f, 0.f));
 	std::fill(mass.begin(), mass.end(), particleMass);
@@ -77,6 +78,25 @@ void Simulation::initializeParticleRandom(Vector2f min, Vector2f max, int amount
 	}
 }
 
+void Simulation::addBoundary(Boundary b) {
+	const auto pos = b.getBoundaryParticlePositions();
+	const auto vol = b.getBoundaryParticleVolume(); 
+
+	boundaries.push_back(b);
+	boundaryPos.insert(boundaryPos.end(), pos.begin(), pos.end());
+	boundaryVolume.insert(boundaryVolume.end(), vol.begin(), vol.end());
+}
+
+void Simulation::addBoundary(std::vector<Boundary> b) {
+	boundaries.insert(boundaries.end(), b.begin(), b.end());
+	for (const auto boundary : b) {
+		const auto pos = boundary.getBoundaryParticlePositions();
+		const auto vol = boundary.getBoundaryParticleVolume();
+		boundaryPos.insert(boundaryPos.end(), pos.begin(), pos.end());
+		boundaryVolume.insert(boundaryVolume.end(), vol.begin(), vol.end());
+	}
+}
+
 void Simulation::update() {
 	ZoneScoped;
 	const float deltaTime = calculateTimeStep();
@@ -95,13 +115,20 @@ void Simulation::calculateDensity(float dt) {
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
-		for (auto j : neighbors[i]) {
+		for (int j : neighbors[i]) {
 			const Vector2f rij = position[i] - position[j];
 			const float dist = rij.magnitude();
 			const float influence = poly6Kernel(dist, params.smoothingRadius);
 			const Vector2f velDiff = velocity[i] - velocity[j];
 			const Vector2f smoothGrad = poly6Gradient(rij, params.smoothingRadius);
 			density[i] += mass[j] * influence + dt * velDiff.dot(smoothGrad);
+		}
+
+		for (int k : boundaryNeighbors[i]) {
+			const Vector2f rik = position[i] - boundaryPos[k];
+			const float dist = rik.magnitude();
+			const float influence = poly6Kernel(dist, params.smoothingRadius);
+			density[i] += params.restDensity * boundaryVolume[k] * influence;
 		}
 	}
 }
@@ -133,8 +160,18 @@ void Simulation::applyNonPressureForce(float dt) {
 			vForce += volume * velDiff * vLaplacian;
 		}
 		vForce *= params.viscosity;
+
+		Vector2f vbForce(0.f, 0.f);
+		for (int k : boundaryNeighbors[i]) {
+			const Vector2f velDiff = -1 * velocity[i];
+			const float dist = (position[i] - boundaryPos[k]).magnitude();
+			const float vLaplacian = viscosityLaplacian(dist, params.smoothingRadius);
+			vbForce += boundaryVolume[k] * velDiff * vLaplacian;
+		}
+		const float v = params.viscosity * params.smoothingRadius / (2.f * density[i]);
+		vbForce *= v;
 		
-		forces[i] = gForce + vForce;
+		forces[i] = gForce + vForce + vbForce;
 	}
 	
 	#pragma omp parallel for
@@ -160,6 +197,20 @@ void Simulation::applyPressureForce(float dt) {
 			sum += mass[j] * combined * grad;
 		}
 		forces[i] = -mass[i] * sum;
+	}
+
+	#pragma omp parallel for
+	for (int i = 0; i < numParticles; i++) {
+		Vector2f sum(0.f, 0.f);
+		const float p_rho = pressure[i] / (density[i] * density[i]);
+		for (int k : boundaryNeighbors[i]) {
+			const Vector2f rik = position[i] - boundaryPos[k];
+			const Vector2f grad = spikyGradient(rik, params.smoothingRadius);
+			const float boundaryMass = params.restDensity * boundaryVolume[k];
+			sum += boundaryMass * grad;
+			// TODO apply force to boundary
+		}
+		forces[i] -=  mass[i] * p_rho * sum * 1E+3;
 	}
 	
 	#pragma omp parallel for
@@ -219,6 +270,19 @@ void Simulation::buildSpatialGrid() {
 		}
 		a.release();
 	}
+	
+	boundarySpatialGrid.clear();
+	#pragma omp parallel for
+	for (int i = 0; i < boundaryPos.size(); i++) {
+		GridCell c = {boundaryPos[i], cellSize};
+		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
+		if (boundarySpatialGrid.insert(a, c)) {
+			a->second = {i};
+		} else {
+			a->second.push_back(i);
+		}
+		a.release();
+	}
 }
 
 void Simulation::findNeighbors() {
@@ -231,28 +295,43 @@ void Simulation::findNeighbors() {
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		std::vector<int> neighborIndices;
+		std::vector<int> boundaryNeighborIndices;
 		// Reserve a bit more than the expected average number of neighbors (20)
 		// to avoid constant reallocations
 		neighborIndices.reserve(64);
+		boundaryNeighborIndices.reserve(64);
 		const GridCell center = {position[i], cellSize};
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
 				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
 				std::vector<int> cellIndices;
+				std::vector<int> boundaryCellIndices;
 				{
 					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
 					if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
 				}
+				{
+					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
+					if (boundarySpatialGrid.find(ca, cell)) boundaryCellIndices = ca->second;
+				}
 
-				for (auto neighbor : cellIndices) {
+				for (const auto neighbor : cellIndices) {
 					const Vector2f rij = position[i] - position[neighbor];
 					const float sqDist = rij.dot(rij);
 					if (sqDist > params.sqSmoothingRadius) continue;
 					neighborIndices.push_back(neighbor);
 				}
+
+				for (const auto neighbor : boundaryCellIndices) {
+					const Vector2f rij = position[i] - boundaryPos[neighbor];
+					const float sqDist = rij.dot(rij);
+					if (sqDist > params.sqSmoothingRadius) continue;
+					boundaryNeighborIndices.push_back(neighbor);
+				}
 			}
 		}
 		neighbors[i] = std::move(neighborIndices);
+		boundaryNeighbors[i] = std::move(boundaryNeighborIndices);
 	}
 }
 

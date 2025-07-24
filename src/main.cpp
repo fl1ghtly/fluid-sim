@@ -60,29 +60,27 @@ int main(void) {
     );
     
     // Box
-    Boundary b1(
-        {0.25f * width, 0.25f * height}, 
-        {0.33f * width, 0.45f * height}, 
-        10000, 
-        smoothingRadius
-    );
+    Boundary b1(10000, smoothingRadius);
+    b1.createBox({0.25f * width, 0.6f * height}, {0.33f * width, 0.8f * height});
 
-    // Polygon (triangle)
-    Boundary b2(
-        {{200.f, 300.f}, {400.f, 300.f}, {300.f, 500.f}},
-        10000,
-        smoothingRadius
-    );
+    // Triangle
+    Boundary b2(10000, smoothingRadius);
+    b2.createPolygon({{200.f, 800.f}, {400.f, 800.f}, {300.f, 1000.f}});
 
     // Circle
-    Boundary b3(
-        {width / 2.f, height / 2.f},
-        100.f,
-        10000,
-        smoothingRadius
-    );
+    Boundary b3(10000, smoothingRadius);
+    b3.createCircle({width / 2.f, height - 200.f}, 100.f);
+
     std::vector<Boundary> boundaries = {b1, b2, b3};
     
+    std::vector<Vector2f> boundaryPositions;
+    for (const auto b : boundaries) {
+        const auto pos = b.getBoundaryParticlePositions();
+        boundaryPositions.insert(boundaryPositions.end(), pos.begin(), pos.end());
+    }
+    boundaryParticles.update(boundaryPositions, sf::Color::White);
+
+    sim.addBoundary(boundaries);
 
     constexpr int MAX_SIM_STEPS = 1200;
     int steps = 0;
@@ -119,6 +117,7 @@ int main(void) {
         window.clear();
         // window.draw(pressureGradient);
         window.draw(particles);
+        window.draw(boundaryParticles);
         window.display();
         sim.update();
         FrameMark;

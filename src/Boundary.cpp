@@ -3,47 +3,20 @@
 constexpr float spacingFactor = 2.5f;
 
 Boundary::Boundary(
-	std::vector<Vector2f> vertices, 
 	float mass, 
 	float smoothingRadius,
+	bool isStatic,
 	Vector2f initialVel
 	) : boundaryMass(mass),
 	smoothingRadius(smoothingRadius),
+	isStatic(isStatic),
 	boundaryVel(initialVel)
 	{
 		particleSpacing = smoothingRadius / spacingFactor;
-		initializeBoundaryParticles(vertices);
-	}
-
-Boundary::Boundary(
-	Vector2f topLeft, 
-	Vector2f bottomRight, 
-	float mass, 
-	float smoothingRadius,
-	Vector2f initialVel
-	) : boundaryMass(mass), 
-	smoothingRadius(smoothingRadius),
-	boundaryVel(initialVel)
-	{
-		particleSpacing = smoothingRadius / spacingFactor;
-		initializeBoundaryParticles(topLeft, bottomRight);
-	}
-
-Boundary::Boundary(
-	Vector2f origin, 
-	float radius, 
-	float mass, 
-	float smoothingRadius,
-	Vector2f initialVel
-	) : boundaryMass(mass),
-	smoothingRadius(smoothingRadius),
-	boundaryVel(initialVel)
-	{
-		particleSpacing = smoothingRadius / spacingFactor;
-		initializeBoundaryParticles(origin, radius);
 	}
 
 void Boundary::applyForce(Vector2f force, float dt) {
+	if (isStatic) return;
 	boundaryVel += dt * force / boundaryMass;
 
 	synchronizeBoundaryParticles(dt);
@@ -57,13 +30,15 @@ std::vector<Vector2f> Boundary::getBoundaryParticlePositions() const {
 	return particlePos;
 }
 
+std::vector<float> Boundary::getBoundaryParticleVolume() const {
+	return particleVolume;
+}
+
 Vector2f Boundary::getCenterPosition() const {
 	return centerOfMass;
 }
 
-void Boundary::initializeBoundaryParticles(std::vector<Vector2f> vertices) {
-	// Polygon
-
+void Boundary::createPolygon(std::vector<Vector2f> vertices) {
 	centerOfMass = {0.f, 0.f};
 	// Construct lines between each vertex in sequence
 	// The last vertex connects to the first vertex in the sequence
@@ -87,13 +62,12 @@ void Boundary::initializeBoundaryParticles(std::vector<Vector2f> vertices) {
 
 		centerOfMass += start;
 	}
-
 	centerOfMass /= vertices.size();
+
+	calculateParticleVolume();
 }
 
-void Boundary::initializeBoundaryParticles(Vector2f topLeft, Vector2f bottomRight) {
-	// Box 
-	
+void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight) {
 	// Only care about magnitude of width/height
 	const float width = bottomRight.x - topLeft.x;
 	const float height = bottomRight.y - topLeft.y;
@@ -117,13 +91,12 @@ void Boundary::initializeBoundaryParticles(Vector2f topLeft, Vector2f bottomRigh
 		particlePos.push_back(left);
 		particlePos.push_back(right);
 	}
-
 	centerOfMass = {topLeft.x + width / 2.f, topLeft.y + height / 2.f};
+
+	calculateParticleVolume();
 }
 
-void Boundary::initializeBoundaryParticles(Vector2f origin, float radius) {
-	// Circle
-	
+void Boundary::createCircle(Vector2f origin, float radius) {
 	const int circleParticles = (int) 2.f * M_PI * radius / particleSpacing;
 
 	for (int i = 0; i < circleParticles; i++) {
@@ -134,12 +107,81 @@ void Boundary::initializeBoundaryParticles(Vector2f origin, float radius) {
 			origin.y + radius * sinf(radian)
 		});
 	}
-
 	centerOfMass = origin;
+
+	calculateParticleVolume();
+}
+
+void Boundary::calculateParticleVolume() {
+	findNeighbors();
+	particleVolume.resize(particlePos.size());
+	for (int i = 0; i < particlePos.size(); i++) {
+		float sum = 0.f;
+		for (int j : neighbors[i]) {
+			const float dist = (particlePos[i] - particlePos[j]).magnitude();
+			sum += poly6Kernel(dist);
+		}
+		particleVolume[i] = 1 / sum;
+	}
 }
 
 void Boundary::synchronizeBoundaryParticles(float dt) {
 	for (int i = 0; i < particlePos.size(); i++) {
 		particlePos[i] += dt * boundaryVel;
 	}
+}
+
+void Boundary::buildSpatialGrid() {
+	// Cell Size = Kernel Support Length is optimal
+	const float cellSize = smoothingRadius;
+
+	spatialGrid.clear();
+	#pragma omp parallel for
+	for (int i = 0; i < particlePos.size(); i++) {
+		GridCell c = {particlePos[i], cellSize};
+		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
+		if (spatialGrid.insert(a, c)) {
+			a->second = {i};
+		} else {
+			a->second.push_back(i);
+		}
+		a.release();
+	}
+}
+
+void Boundary::findNeighbors() {
+	const float cellSize = smoothingRadius;
+	buildSpatialGrid();
+	neighbors.resize(particlePos.size());
+
+	#pragma omp parallel for
+	for (int i = 0; i < particlePos.size(); i++) {
+		std::vector<int> neighborIndices;
+		const GridCell center = {particlePos[i], cellSize};
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
+				std::vector<int> cellIndices;
+				{
+					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
+					if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
+				}
+
+				for (auto neighbor : cellIndices) {
+					const Vector2f rij = particlePos[i] - particlePos[neighbor];
+					const float dist = rij.magnitude();
+					if (dist > smoothingRadius) continue;
+					neighborIndices.push_back(neighbor);
+				}
+			}
+		}
+		neighbors[i] = std::move(neighborIndices);
+	}
+}
+
+float Boundary::poly6Kernel(float dist) {
+	if (dist < 0 || dist > smoothingRadius) return 0.f;
+	const float factor = smoothingRadius * smoothingRadius - dist * dist;
+	const float poly6C = 4 / (M_PI * pow(smoothingRadius, 8.f));
+	return poly6C * factor * factor * factor;
 }
