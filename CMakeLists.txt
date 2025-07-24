@@ -30,11 +30,12 @@ add_executable(fluid_sim
     src/GridCell.cpp
     src/ParticleSystem.cpp
     src/FluidParameters.cpp
+    src/Boundary.cpp
     src/PressureSystem.cpp
 )
 
 # Include directory for headers
-target_include_directories(fluid_sim PRIVATE
+target_include_directories(fluid_sim PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 

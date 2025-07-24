@@ -6,6 +6,7 @@
 #include "ParticleSystem.h"
 #include "PressureSystem.h"
 #include "ColorMap.h"
+#include "Boundary.h"
 
 #include <tracy/Tracy.hpp>
 
@@ -43,20 +44,45 @@ int main(void) {
     window.setFramerateLimit(144);
     
 	Simulation sim(width, height, params, downDir, -1.f);
+    ParticleSystem particles;
+    ParticleSystem boundaryParticles;
     
     // Create square grids
-	sim.initializeParticleGrid(
+    sim.initializeParticleGrid(
         {width * 0.25f, height * 0.25f}, 
         (int)sqrt(numParticles / 2.f), 
         numParticles / 2.f
     );
-	sim.initializeParticleGrid(
+    sim.initializeParticleGrid(
         {width * 0.75f, height * 0.75f}, 
         (int)sqrt(numParticles / 2.f), 
         numParticles / 2.f
     );
     
-    ParticleSystem particles(sim.getNumParticles());
+    // Box
+    Boundary b1(
+        {0.25f * width, 0.25f * height}, 
+        {0.33f * width, 0.45f * height}, 
+        10000, 
+        smoothingRadius
+    );
+
+    // Polygon (triangle)
+    Boundary b2(
+        {{200.f, 300.f}, {400.f, 300.f}, {300.f, 500.f}},
+        10000,
+        smoothingRadius
+    );
+
+    // Circle
+    Boundary b3(
+        {width / 2.f, height / 2.f},
+        100.f,
+        10000,
+        smoothingRadius
+    );
+    std::vector<Boundary> boundaries = {b1, b2, b3};
+    
 
     constexpr int MAX_SIM_STEPS = 1200;
     int steps = 0;

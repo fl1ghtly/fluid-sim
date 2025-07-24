@@ -1,8 +1,7 @@
 #include "ParticleSystem.h"
 
-ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, count)
-{
-}
+ParticleSystem::ParticleSystem() : vertices(sf::PrimitiveType::Points)
+{}
 
  void ParticleSystem::update(
 		std::vector<Vector2f> position, 
@@ -10,6 +9,7 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 		float min, 
 		float max, 
 		std::vector<sf::Color> cmap) {
+	vertices.resize(position.size());
 	#pragma omp parallel for
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
@@ -23,10 +23,19 @@ ParticleSystem::ParticleSystem(int count) : vertices(sf::PrimitiveType::Points, 
 		float min, 
 		float max, 
 		std::vector<sf::Color> cmap) {
+	vertices.resize(position.size());
 	#pragma omp parallel for
 	for (int i = 0; i < position.size(); i++) {
 		vertices[i].position = {position[i].x, position[i].y};
 		vertices[i].color = getColorMap(field[i], min, max, cmap);
+	}
+}
+
+void ParticleSystem::update(std::vector<Vector2f> position, sf::Color color) {
+	vertices.resize(position.size());
+	for (int i = 0; i < position.size(); i++) {
+		vertices[i].position = {position[i].x, position[i].y};
+		vertices[i].color = color;
 	}
  }
 
