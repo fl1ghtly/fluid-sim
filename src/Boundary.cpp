@@ -16,7 +16,7 @@ boundaryVel(initialVel) {
 	isStatic = false;
 }
 
-void Boundary::applyForce(Vector2f force, float dt) {
+void Boundary::applyForceAndTorque(Vector2f force, float dt) {
 	if (isStatic) return;
 	boundaryVel += dt * force / boundaryMass;
 

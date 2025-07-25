@@ -40,6 +40,7 @@ class Simulation {
 		void calculatePressure();
 		void applyNonPressureForce(float dt);
 		void applyPressureForce(float dt);
+		void applyForceToBoundary(float dt);
 		void applyWorldBoundary();
 		float calculateTimeStep();
 		void buildSpatialGrid();
@@ -67,6 +68,8 @@ class Simulation {
 		std::vector<Boundary> boundaries;
 		std::vector<Vector2f> boundaryPos;
 		std::vector<float> boundaryVolume;
+		std::vector<int> boundaryStartIndex;
+		std::vector<Vector2f> boundaryForce;
 		tbb::concurrent_hash_map<GridCell, std::vector<int>> boundarySpatialGrid;
 		std::vector<std::vector<int>> boundaryNeighbors;
 		float poly6C, spikyGC, viscosityLC;

@@ -83,13 +83,19 @@ void Simulation::addBoundary(Boundary b) {
 	const auto vol = b.getBoundaryParticleVolume(); 
 
 	boundaries.push_back(b);
+	// Keep track of which indices belong to a boundary object by storing the
+	// starting index for the boundary
+	boundaryStartIndex.push_back(boundaryPos.size());
 	boundaryPos.insert(boundaryPos.end(), pos.begin(), pos.end());
 	boundaryVolume.insert(boundaryVolume.end(), vol.begin(), vol.end());
+	boundaryForce.resize(boundaries.size());
 }
 
 void Simulation::addBoundary(std::vector<Boundary> b) {
 	boundaries.insert(boundaries.end(), b.begin(), b.end());
+	boundaryForce.resize(boundaries.size());
 	for (const auto boundary : b) {
+		boundaryStartIndex.push_back(boundaryPos.size());
 		const auto pos = boundary.getBoundaryParticlePositions();
 		const auto vol = boundary.getBoundaryParticleVolume();
 		boundaryPos.insert(boundaryPos.end(), pos.begin(), pos.end());
@@ -105,7 +111,8 @@ void Simulation::update() {
 	applyNonPressureForce(deltaTime);
 	calculateDensity(deltaTime);
 	calculatePressure();
-	applyPressureForce(deltaTime);       
+	applyPressureForce(deltaTime);
+	applyForceToBoundary(deltaTime);
 	applyWorldBoundary();
 	currentStep++;
 }
@@ -215,15 +222,28 @@ void Simulation::applyPressureForce(float dt) {
 			const Vector2f grad = spikyGradient(rik, params.smoothingRadius);
 			const float boundaryMass = params.restDensity * boundaryVolume[k];
 			sum += boundaryMass * grad;
-			// TODO apply force to boundary
+			// Get the iterator pointing to the first start index greater than k
+			const auto boundaryUpper = std::upper_bound(
+				boundaryStartIndex.begin(),
+				boundaryStartIndex.end(),
+				k
+			);
+			// Accumulate force for k's boundary object
+			boundaryForce[*(boundaryUpper - 1)] += mass[i] * p_rho * boundaryMass * grad;
 		}
-		forces[i] -=  mass[i] * p_rho * sum;
+		forces[i] -= mass[i] * p_rho * sum;
 	}
 	
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		velocity[i] += dt * forces[i] / mass[i];
 		position[i] += dt * velocity[i];
+	}
+}
+
+void Simulation::applyForceToBoundary(float dt) {
+	for (int i = 0; i < boundaries.size(); i++) {
+		boundaries[i].applyForceAndTorque(boundaryForce[i], dt);
 	}
 }
 
