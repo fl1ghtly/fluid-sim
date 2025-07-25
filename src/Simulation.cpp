@@ -115,6 +115,8 @@ void Simulation::calculateDensity(float dt) {
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
+		
+		// Density from fluid particles
 		for (int j : neighbors[i]) {
 			const Vector2f rij = position[i] - position[j];
 			const float dist = rij.magnitude();
@@ -124,6 +126,7 @@ void Simulation::calculateDensity(float dt) {
 			density[i] += mass[j] * influence + dt * velDiff.dot(smoothGrad);
 		}
 
+		// Density from boundary particles
 		for (int k : boundaryNeighbors[i]) {
 			const Vector2f rik = position[i] - boundaryPos[k];
 			const float dist = rik.magnitude();
@@ -153,6 +156,7 @@ void Simulation::applyNonPressureForce(float dt) {
 		// Force due to viscosity
 		Vector2f vForce(0.f, 0.f);
 		for (int j : neighbors[i]) {
+			// TODO missing extra density
 			const float volume = mass[j] / density[j];
 			const Vector2f velDiff = velocity[j] - velocity[i];
 			const float dist = (position[i] - position[j]).magnitude();
@@ -161,6 +165,7 @@ void Simulation::applyNonPressureForce(float dt) {
 		}
 		vForce *= params.viscosity;
 
+		// Force due to viscosity between fluid and boundary
 		Vector2f vbForce(0.f, 0.f);
 		for (int k : boundaryNeighbors[i]) {
 			const Vector2f velDiff = -1 * velocity[i];
@@ -168,8 +173,7 @@ void Simulation::applyNonPressureForce(float dt) {
 			const float vLaplacian = viscosityLaplacian(dist, params.smoothingRadius);
 			vbForce += boundaryVolume[k] * velDiff * vLaplacian;
 		}
-		const float v = params.viscosity * params.smoothingRadius / (2.f * density[i]);
-		vbForce *= v;
+		vbForce *= params.viscosity;
 		
 		forces[i] = gForce + vForce + vbForce;
 	}
@@ -184,6 +188,8 @@ void Simulation::applyNonPressureForce(float dt) {
 void Simulation::applyPressureForce(float dt) {
 	ZoneScoped;
 	std::vector<Vector2f> forces(numParticles);
+
+	// Force due to pressure from other fluids
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		Vector2f sum(0.f, 0.f);
@@ -199,6 +205,7 @@ void Simulation::applyPressureForce(float dt) {
 		forces[i] = -mass[i] * sum;
 	}
 
+	// Force due to pressure from boundary
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		Vector2f sum(0.f, 0.f);
@@ -210,7 +217,7 @@ void Simulation::applyPressureForce(float dt) {
 			sum += boundaryMass * grad;
 			// TODO apply force to boundary
 		}
-		forces[i] -=  mass[i] * p_rho * sum * 1E+3;
+		forces[i] -=  mass[i] * p_rho * sum;
 	}
 	
 	#pragma omp parallel for
@@ -258,6 +265,7 @@ void Simulation::buildSpatialGrid() {
 	// Cell Size = Kernel Support Length is optimal
 	const float cellSize = params.smoothingRadius;
 
+	// Build spatial grid for fluid particles
 	spatialGrid.clear();
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
@@ -271,6 +279,7 @@ void Simulation::buildSpatialGrid() {
 		a.release();
 	}
 	
+	// Build spatial grid for boundary particles
 	boundarySpatialGrid.clear();
 	#pragma omp parallel for
 	for (int i = 0; i < boundaryPos.size(); i++) {

@@ -18,6 +18,7 @@ int main(void) {
     constexpr float stiffness = 1E+3f;
     constexpr float viscosity = 1E+6f;
     constexpr float smoothingRadius = 8.f;
+    constexpr float boundaryRadius = smoothingRadius * 4.f;
     constexpr int numParticles = 50000;
     constexpr int width = 1920;
     constexpr int height = 1080;
@@ -60,15 +61,15 @@ int main(void) {
     );
     
     // Box
-    Boundary b1(smoothingRadius);
-    b1.createBox({0.25f * width, 0.6f * height}, {0.33f * width, 0.8f * height});
+    Boundary b1(boundaryRadius);
+    b1.createBox({0.25f * width, 0.6f * height}, {0.33f * width, 0.8f * height}, 0.25);
 
     // Triangle
-    Boundary b2(smoothingRadius);
-    b2.createPolygon({{200.f, 800.f}, {400.f, 800.f}, {300.f, 1000.f}});
+    Boundary b2(boundaryRadius);
+    b2.createPolygon({{200.f, 800.f}, {400.f, 800.f}, {300.f, 1000.f}}, 0.0625);
 
     // Circle
-    Boundary b3(smoothingRadius);
+    Boundary b3(boundaryRadius);
     b3.createCircle({width / 2.f, height - 200.f}, 100.f);
 
     std::vector<Boundary> boundaries = {b1, b2, b3};
