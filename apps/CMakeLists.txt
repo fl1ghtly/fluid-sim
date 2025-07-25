@@ -1,3 +1,20 @@
+# Add executable target
+add_executable(fluid_sim
+    EXCLUDE_FROM_ALL
+    app.cpp
+    ../src/Simulation.cpp
+    ../src/Vector2f.cpp
+    ../src/GridCell.cpp
+    ../src/ParticleSystem.cpp
+    ../src/FluidParameters.cpp
+    ../src/Boundary.cpp
+    ../src/PressureSystem.cpp
+)
+
+if(NOT TARGET fluid_sim)
+    return()
+endif()
+
 # Enable tracy by default on debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(ENABLE_TRACY_DEFAULT ON)
@@ -30,19 +47,6 @@ FetchContent_Declare (tracy
 	EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(tracy)
-
-# Add executable with all source files
-add_executable(fluid_sim
-    EXCLUDE_FROM_ALL
-    app.cpp
-    ../src/Simulation.cpp
-    ../src/Vector2f.cpp
-    ../src/GridCell.cpp
-    ../src/ParticleSystem.cpp
-    ../src/FluidParameters.cpp
-    ../src/Boundary.cpp
-    ../src/PressureSystem.cpp
-)
 
 # Link dependencies only for executable
 target_link_libraries(fluid_sim PRIVATE
