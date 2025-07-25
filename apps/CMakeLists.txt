@@ -2,18 +2,9 @@
 add_executable(fluid_sim
     EXCLUDE_FROM_ALL
     app.cpp
-    ../src/Simulation.cpp
-    ../src/Vector2f.cpp
-    ../src/GridCell.cpp
-    ../src/ParticleSystem.cpp
-    ../src/FluidParameters.cpp
-    ../src/Boundary.cpp
-    ../src/PressureSystem.cpp
+    ParticleSystem.cpp
+    PressureSystem.cpp
 )
-
-if(NOT TARGET fluid_sim)
-    return()
-endif()
 
 # Enable tracy by default on debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -48,6 +39,9 @@ FetchContent_Declare (tracy
 )
 FetchContent_MakeAvailable(tracy)
 
+target_include_directories(fluid_sim PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include # Apps/Include
+)
 # Link dependencies only for executable
 target_link_libraries(fluid_sim PRIVATE
     FluidSimulation
