@@ -7,47 +7,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(GNUInstallDirs)
 
-# Enable tracy by default on debug builds
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ENABLE_TRACY_DEFAULT ON)
-else()
-    set(ENABLE_TRACY_DEFAULT OFF)
-endif()
-
-option(
-    ENABLE_TRACY 
-    "Enable Tracy Profiling"
-    ${ENABLE_TRACY_DEFAULT}
-)
-
-message(STATUS "ENABLE_TRACY: ${ENABLE_TRACY}")
-
-include(FetchContent)
-
 find_package(OpenMP)
 find_package(TBB REQUIRED)
 
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 3.0.1
-    GIT_SHALLOW ON
-    EXCLUDE_FROM_ALL
-    SYSTEM)
-FetchContent_MakeAvailable(SFML)
-
-if(ENABLE_TRACY)
-    FetchContent_Declare (tracy
-        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-        GIT_TAG v0.12.2
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-        EXCLUDE_FROM_ALL
-    )
-    FetchContent_MakeAvailable(tracy)
-endif()
-
 # Create library
-add_library(FluidSimulation src/Simulation.cpp)
+add_library(FluidSimulation 
+    src/Simulation.cpp
+    src/Vector2f.cpp
+    src/GridCell.cpp
+    src/FluidParameters.cpp
+    src/Boundary.cpp
+)
+
+add_subdirectory(apps EXCLUDE_FROM_ALL)
 
 # Include directory for headers
 target_include_directories(FluidSimulation PUBLIC
@@ -60,29 +32,6 @@ target_link_libraries(FluidSimulation PRIVATE TBB::tbb)
 if(OpenMP_CXX_FOUND)
 target_link_libraries(FluidSimulation PRIVATE OpenMP::OpenMP_CXX)
 endif()
-
-if(ENABLE_TRACY)
-    target_compile_definitions(FluidSimulation PRIVATE TRACY_ENABLED)
-    target_link_libraries(FluidSimulation PRIVATE TracyClient)
-endif()
-
-# Add executable with all source files
-add_executable(fluid_sim
-    src/main.cpp
-    src/Simulation.cpp
-    src/Vector2f.cpp
-    src/GridCell.cpp
-    src/ParticleSystem.cpp
-    src/FluidParameters.cpp
-    src/Boundary.cpp
-    src/PressureSystem.cpp
-)
-
-# Link dependencies only for executable
-target_link_libraries(fluid_sim PRIVATE
-    FluidSimulation
-    SFML::Graphics
-)
 
 # Create targets to export
 install(TARGETS FluidSimulation
@@ -103,6 +52,8 @@ install(EXPORT FluidSimulationTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FluidSimulation
 )
 
+include(CMakePackageConfigHelpers)
+
 # Create package config file
 configure_package_config_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FluidSimulationConfig.cmake.in
@@ -116,7 +67,6 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FluidSimulation
 )
 
-include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
     FluidSimulationConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
