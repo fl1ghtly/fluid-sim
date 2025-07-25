@@ -1,12 +1,9 @@
 #include "Boundary.h"
 
-constexpr float spacingFactor = 2.5f;
-
 Boundary::Boundary(float smoothingRadius) : smoothingRadius(smoothingRadius) {
 	boundaryMass = INFINITY;
 	isStatic = true;
 	boundaryVel = {0.f, 0.f};
-	particleSpacing = smoothingRadius / spacingFactor;
 }
 
 Boundary::Boundary(
@@ -17,7 +14,6 @@ Boundary::Boundary(
 boundaryMass(mass),
 boundaryVel(initialVel) {
 	isStatic = false;
-	particleSpacing = smoothingRadius / spacingFactor;
 }
 
 void Boundary::applyForce(Vector2f force, float dt) {
@@ -43,7 +39,8 @@ Vector2f Boundary::getCenterPosition() const {
 	return centerOfMass;
 }
 
-void Boundary::createPolygon(std::vector<Vector2f> vertices) {
+void Boundary::createPolygon(std::vector<Vector2f> vertices, float compression) {
+	const float particleSpacing = 1.f / std::clamp(compression, 1E-6f, 1.f);
 	centerOfMass = {0.f, 0.f};
 	// Construct lines between each vertex in sequence
 	// The last vertex connects to the first vertex in the sequence
@@ -72,7 +69,8 @@ void Boundary::createPolygon(std::vector<Vector2f> vertices) {
 	calculateParticleVolume();
 }
 
-void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight) {
+void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight, float compression) {
+	const float particleSpacing = 1.f / compression;
 	// Only care about magnitude of width/height
 	const float width = bottomRight.x - topLeft.x;
 	const float height = bottomRight.y - topLeft.y;
@@ -101,7 +99,8 @@ void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight) {
 	calculateParticleVolume();
 }
 
-void Boundary::createCircle(Vector2f origin, float radius) {
+void Boundary::createCircle(Vector2f origin, float radius, float compression) {
+	const float particleSpacing = 1.f / compression;
 	const int circleParticles = (int) 2.f * M_PI * radius / particleSpacing;
 
 	for (int i = 0; i < circleParticles; i++) {

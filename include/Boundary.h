@@ -12,9 +12,9 @@ class Boundary {
 			float mass,
 			Vector2f initialVel={0.f, 0.f}
 		);
-		void createPolygon(std::vector<Vector2f> vertices);
-		void createBox(Vector2f topLeft, Vector2f bottomRight);
-		void createCircle(Vector2f origin, float radius);
+		void createPolygon(std::vector<Vector2f> vertice, float compression=1.f);
+		void createBox(Vector2f topLeft, Vector2f bottomRight, float compression=1.f);
+		void createCircle(Vector2f origin, float radius, float compression=1.f);
 		void applyForce(Vector2f force, float dt);
 		int getNumBoundaryParticles() const;
 		std::vector<Vector2f> getBoundaryParticlePositions() const;
@@ -26,7 +26,6 @@ class Boundary {
 		float smoothingRadius;
 		bool isStatic;
 		Vector2f boundaryVel;
-		float particleSpacing;
 		Vector2f centerOfMass;
 		std::vector<Vector2f> particlePos;
 		std::vector<float> particleVolume;
