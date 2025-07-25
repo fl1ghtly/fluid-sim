@@ -19,7 +19,9 @@ add_library(FluidSimulation
     src/Boundary.cpp
 )
 
-add_subdirectory(apps EXCLUDE_FROM_ALL)
+if(PROJECT_IS_TOP_LEVEL)
+    add_subdirectory(apps EXCLUDE_FROM_ALL)
+endif()
 
 # Include directory for headers
 target_include_directories(FluidSimulation PUBLIC
