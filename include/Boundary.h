@@ -15,6 +15,7 @@ class Boundary {
 		void createPolygon(std::vector<Vector2f> vertice, float compression=1.f);
 		void createBox(Vector2f topLeft, Vector2f bottomRight, float compression=1.f);
 		void createCircle(Vector2f origin, float radius, float compression=1.f);
+		void activateBoundary();
 		void applyForceAndTorque(Vector2f force, float dt);
 		int getNumBoundaryParticles() const;
 		std::vector<Vector2f> getBoundaryParticlePositions() const;

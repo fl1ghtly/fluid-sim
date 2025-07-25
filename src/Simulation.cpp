@@ -105,6 +105,7 @@ void Simulation::addBoundary(std::vector<Boundary> b) {
 
 void Simulation::update() {
 	SimZoneScoped;
+	if (numParticles <= 0) return;
 	const float deltaTime = calculateTimeStep();
 
 	findNeighbors();

@@ -65,8 +65,6 @@ void Boundary::createPolygon(std::vector<Vector2f> vertices, float compression) 
 		centerOfMass += start;
 	}
 	centerOfMass /= vertices.size();
-
-	calculateParticleVolume();
 }
 
 void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight, float compression) {
@@ -95,8 +93,6 @@ void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight, float compressi
 		particlePos.push_back(right);
 	}
 	centerOfMass = {topLeft.x + width / 2.f, topLeft.y + height / 2.f};
-
-	calculateParticleVolume();
 }
 
 void Boundary::createCircle(Vector2f origin, float radius, float compression) {
@@ -112,7 +108,9 @@ void Boundary::createCircle(Vector2f origin, float radius, float compression) {
 		});
 	}
 	centerOfMass = origin;
+}
 
+void Boundary::activateBoundary() {
 	calculateParticleVolume();
 }
 
