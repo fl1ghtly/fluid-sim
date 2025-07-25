@@ -106,7 +106,7 @@ void Simulation::update() {
 	calculateDensity(deltaTime);
 	calculatePressure();
 	applyPressureForce(deltaTime);       
-	applyBoundaryCondition();
+	applyWorldBoundary();
 	currentStep++;
 }
 
@@ -220,7 +220,7 @@ void Simulation::applyPressureForce(float dt) {
 	}
 }
 
-void Simulation::applyBoundaryCondition() {
+void Simulation::applyWorldBoundary() {
 	ZoneScoped;
 	for (int i = 0; i < numParticles; i++) {
 		auto& p = position[i];

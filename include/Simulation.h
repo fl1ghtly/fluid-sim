@@ -40,7 +40,7 @@ class Simulation {
 		void calculatePressure();
 		void applyNonPressureForce(float dt);
 		void applyPressureForce(float dt);
-		void applyBoundaryCondition();
+		void applyWorldBoundary();
 		float calculateTimeStep();
 		void buildSpatialGrid();
 		void sortZIndex();
