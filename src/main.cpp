@@ -8,7 +8,14 @@
 #include "ColorMap.h"
 #include "Boundary.h"
 
+#ifdef TRACY_ENABLED
 #include <tracy/Tracy.hpp>
+#define SimFrameMark FrameMark
+
+#else
+#define SimFrameMark
+
+#endif
 
 int main(void) {
     constexpr Vector2f downDir(0.f, 1.f);
@@ -98,7 +105,9 @@ int main(void) {
         
 		std::vector<Vector2f> pos = sim.getPosition();
 		std::vector<Vector2f> vel = sim.getVelocity();
-        particles.update(pos, vel, 0.f, 100.f, ColorMap::viridis);
+        const auto d = sim.getDensity();
+        // particles.update(pos, vel, 0.f, 100.f, ColorMap::viridis);
+        particles.update(pos, d, 0.f, 4E+3f, ColorMap::viridis);
 
         /*
         float maxP = 0.f;
@@ -121,7 +130,7 @@ int main(void) {
         window.draw(boundaryParticles);
         window.display();
         sim.update();
-        FrameMark;
+        SimFrameMark;
 
         if (steps >= MAX_SIM_STEPS) {
             // window.close();

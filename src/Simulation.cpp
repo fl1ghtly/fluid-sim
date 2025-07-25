@@ -104,7 +104,7 @@ void Simulation::addBoundary(std::vector<Boundary> b) {
 }
 
 void Simulation::update() {
-	ZoneScoped;
+	SimZoneScoped;
 	const float deltaTime = calculateTimeStep();
 
 	findNeighbors();
@@ -118,7 +118,7 @@ void Simulation::update() {
 }
 
 void Simulation::calculateDensity(float dt) {
-	ZoneScoped;
+	SimZoneScoped;
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		density[i] = 0.f;
@@ -144,7 +144,7 @@ void Simulation::calculateDensity(float dt) {
 }
 
 void Simulation::calculatePressure() {
-	ZoneScoped;
+	SimZoneScoped;
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		pressure[i] = params.stiffness * (pow(density[i] / params.restDensity, 7.f) - 1);
@@ -152,7 +152,7 @@ void Simulation::calculatePressure() {
 }
 
 void Simulation::applyNonPressureForce(float dt) {
-	ZoneScoped;
+	SimZoneScoped;
 	std::vector<Vector2f> forces(numParticles);
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
@@ -193,7 +193,7 @@ void Simulation::applyNonPressureForce(float dt) {
 }
 
 void Simulation::applyPressureForce(float dt) {
-	ZoneScoped;
+	SimZoneScoped;
 	std::vector<Vector2f> forces(numParticles);
 
 	// Force due to pressure from other fluids
@@ -248,7 +248,7 @@ void Simulation::applyForceToBoundary(float dt) {
 }
 
 void Simulation::applyWorldBoundary() {
-	ZoneScoped;
+	SimZoneScoped;
 	for (int i = 0; i < numParticles; i++) {
 		auto& p = position[i];
 		auto& v = velocity[i];
@@ -281,7 +281,7 @@ float Simulation::calculateTimeStep() {
 }
 
 void Simulation::buildSpatialGrid() {
-	ZoneScoped;
+	SimZoneScoped;
 	// Cell Size = Kernel Support Length is optimal
 	const float cellSize = params.smoothingRadius;
 
@@ -315,7 +315,7 @@ void Simulation::buildSpatialGrid() {
 }
 
 void Simulation::findNeighbors() {
-	ZoneScoped;
+	SimZoneScoped;
 	const float cellSize = params.smoothingRadius;
 	// Maintain spatial locality every simulation step
 	sortZIndex();
@@ -365,7 +365,7 @@ void Simulation::findNeighbors() {
 }
 
 void Simulation::sortZIndex() {
-	ZoneScoped;
+	SimZoneScoped;
 	const float cellSize = params.smoothingRadius;
 	std::vector<unsigned int> zIndex(numParticles);
 

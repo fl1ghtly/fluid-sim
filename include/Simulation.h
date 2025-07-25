@@ -10,7 +10,14 @@
 #include "FluidParameters.h"
 #include "Boundary.h"
 
+#ifdef TRACY_ENABLED
 #include <tracy/Tracy.hpp>
+#define SimZoneScoped ZoneScoped
+
+#else
+#define SimZoneScoped
+
+#endif
 
 class Simulation {
 	public:
