@@ -41,6 +41,7 @@ if(ENABLE_TRACY)
         GIT_TAG v0.12.2
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
+        EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(tracy)
 endif()
