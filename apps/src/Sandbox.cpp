@@ -23,6 +23,12 @@ enum State {
     FLUID
 };
 
+enum FluidState {
+    VELOCITY,
+    DENSITY,
+    PRESSURE
+};
+
 enum BoundaryState {
     POLYGON,
     BOX,
@@ -108,48 +114,12 @@ int main(void) {
 	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Simulation Simulation");
     window.setFramerateLimit(144);
     
-	Simulation sim(width, height, params, downDir, -1.f);
+	Simulation sim(width, height, params, downDir);
     ParticleSystem particles;
     ParticleSystem boundaryParticles;
-    
-    /*
-    // Create square grids
-    sim.initializeParticleGrid(
-        {width * 0.25f, height * 0.25f}, 
-        (int)sqrt(numParticles / 2.f), 
-        numParticles / 2.f
-    );
-    sim.initializeParticleGrid(
-        {width * 0.75f, height * 0.75f}, 
-        (int)sqrt(numParticles / 2.f), 
-        numParticles / 2.f
-    );
-    
-    // Box
-    Boundary b1(boundaryRadius);
-    b1.createBox({0.25f * width, 0.6f * height}, {0.33f * width, 0.8f * height}, 0.25);
-    
-    // Triangle
-    Boundary b2(boundaryRadius);
-    b2.createPolygon({{200.f, 800.f}, {400.f, 800.f}, {300.f, 1000.f}}, 0.0625);
-    
-    // Circle
-    Boundary b3(boundaryRadius);
-    b3.createCircle({width / 2.f, height - 200.f}, 100.f);
-    
-    std::vector<Boundary> boundaries = {b1, b2, b3};
-    
-    std::vector<Vector2f> boundaryPositions;
-    for (const auto b : boundaries) {
-        const auto pos = b.getBoundaryParticlePositions();
-        boundaryPositions.insert(boundaryPositions.end(), pos.begin(), pos.end());
-    }
-    boundaryParticles.update(boundaryPositions, sf::Color::White);
-    
-    sim.addBoundary(boundaries);
-    */
 
     enum State currentState = FLUID;
+    enum FluidState currentFluidState = VELOCITY;
     enum BoundaryState currentBoundaryType = POLYGON;
 
     FluidPlaceData fData = {
@@ -172,21 +142,38 @@ int main(void) {
             if (event->is<sf::Event::Closed>()) window.close();
 
             if (const auto* keyPress = event->getIf<sf::Event::KeyPressed>()) {
-                if (keyPress->scancode == sf::Keyboard::Scan::Num1) {
-                    currentState = FLUID;
-                    stopDrawingTemporaryBoundary(bData);
-                } else if (keyPress->scancode == sf::Keyboard::Scan::Num2) {
-                    currentState = BOUNDARY;
-                    stopDrawingTemporaryBoundary(bData);
-                } else if (keyPress->scancode == sf::Keyboard::Scan::Num3) {
-                    currentBoundaryType = POLYGON;
-                    stopDrawingTemporaryBoundary(bData);
-                } else if (keyPress->scancode == sf::Keyboard::Scan::Num4) {
-                    currentBoundaryType = BOX;
-                    stopDrawingTemporaryBoundary(bData);
-                } else if (keyPress->scancode == sf::Keyboard::Scan::Num5) {
-                    currentBoundaryType = CIRCLE;
-                    stopDrawingTemporaryBoundary(bData);
+                switch (keyPress->code) {
+                    case sf::Keyboard::Key::Q:
+                        currentState = FLUID;
+                        stopDrawingTemporaryBoundary(bData);
+                        break;
+                    case sf::Keyboard::Key::E:
+                        currentState = BOUNDARY;
+                        stopDrawingTemporaryBoundary(bData);
+                        break;
+                    case sf::Keyboard::Key::Z:
+                        currentBoundaryType = POLYGON;
+                        stopDrawingTemporaryBoundary(bData);
+                        break;
+                    case sf::Keyboard::Key::X:
+                        currentBoundaryType = BOX;
+                        stopDrawingTemporaryBoundary(bData);
+                        break;
+                    case sf::Keyboard::Key::C:
+                        currentBoundaryType = CIRCLE;
+                        stopDrawingTemporaryBoundary(bData);
+                        break;
+                    case sf::Keyboard::Key::Num1:
+                        currentFluidState = VELOCITY;
+                        break;
+                    case sf::Keyboard::Key::Num2:
+                        currentFluidState = DENSITY;
+                        break;
+                    case sf::Keyboard::Key::Num3:
+                        currentFluidState = PRESSURE;
+                        break;
+                    default:
+                        break;
                 }
             }
 
@@ -199,9 +186,26 @@ int main(void) {
         
         // Render fluid particles
 		std::vector<Vector2f> pos = sim.getPosition();
-		std::vector<Vector2f> vel = sim.getVelocity();
-        const auto d = sim.getDensity();
-        particles.update(pos, vel, 0.f, 100.f, ColorMap::viridis);
+        switch (currentFluidState) {
+            case VELOCITY:
+            {
+                const auto vel = sim.getVelocity();
+                particles.update(pos, vel, 0.f, 100.f, ColorMap::viridis);
+                break;
+            }
+            case DENSITY:
+            {
+                const auto d = sim.getDensity();
+                particles.update(pos, d, 0.f, 5E+3f, ColorMap::viridis);
+                break;
+            }
+            case PRESSURE:
+            {
+                const auto p = sim.getPressure();
+                particles.update(pos, p, 0.f, 1E+6f, ColorMap::viridis);
+                break;
+            }
+        }
 
         // Render all boundaries
         std::vector<Vector2f> boundaryPositions;
@@ -213,10 +217,10 @@ int main(void) {
         boundaryPositions.insert(boundaryPositions.end(), tempPos.begin(), tempPos.end());
         boundaryParticles.update(boundaryPositions, sf::Color::White);
 
-        
         window.clear();
         window.draw(particles);
         window.draw(boundaryParticles);
+        // Draw reticle to show where fluid will be placed
         if (currentState == FLUID) {
             sf::CircleShape c(fData.radius);
             c.setFillColor(sf::Color::Transparent);
