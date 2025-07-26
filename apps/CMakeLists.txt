@@ -1,9 +1,14 @@
 # Add executable target
-add_executable(fluid_sim
+add_executable(sandbox
     EXCLUDE_FROM_ALL
-    app.cpp
-    ParticleSystem.cpp
-    PressureSystem.cpp
+    src/Sandbox.cpp
+    src/Visualization/ParticleSystem.cpp
+)
+
+add_executable(demo
+    EXCLUDE_FROM_ALL
+    src/Demo.cpp
+    src/Visualization/ParticleSystem.cpp
 )
 
 # Enable tracy by default on debug builds
@@ -39,16 +44,34 @@ FetchContent_Declare (tracy
 )
 FetchContent_MakeAvailable(tracy)
 
-target_include_directories(fluid_sim PRIVATE
+target_include_directories(sandbox PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include # Apps/Include
 )
+
+# Link for sandbox target
 # Link dependencies only for executable
-target_link_libraries(fluid_sim PRIVATE
+target_link_libraries(sandbox PRIVATE
     FluidSimulation
     SFML::Graphics
 )
 
 if(ENABLE_TRACY)
-    target_compile_definitions(fluid_sim PRIVATE TRACY_ENABLED)
-    target_link_libraries(fluid_sim PRIVATE TracyClient)
+    target_compile_definitions(sandbox PRIVATE TRACY_ENABLED)
+    target_link_libraries(sandbox PRIVATE TracyClient)
+endif()
+
+# Link for demo target
+target_include_directories(demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include # Apps/Include
+)
+
+# Link dependencies only for executable
+target_link_libraries(demo PRIVATE
+    FluidSimulation
+    SFML::Graphics
+)
+
+if(ENABLE_TRACY)
+    target_compile_definitions(demo PRIVATE TRACY_ENABLED)
+    target_link_libraries(demo PRIVATE TracyClient)
 endif()
