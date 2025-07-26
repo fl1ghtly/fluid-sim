@@ -1,4 +1,4 @@
-#include "ParticleSystem.h"
+#include "Visualization/ParticleSystem.h"
 
 ParticleSystem::ParticleSystem() : vertices(sf::PrimitiveType::Points)
 {}

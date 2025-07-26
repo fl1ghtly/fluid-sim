@@ -1,4 +1,4 @@
-#include "PressureSystem.h"
+#include "Visualization/PressureSystem.h"
 
 PressureSystem::PressureSystem(int w, int h, int gridSize) 
 	: vertices(sf::PrimitiveType::TriangleStrip),
