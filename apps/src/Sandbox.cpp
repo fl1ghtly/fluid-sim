@@ -3,9 +3,8 @@
 #include "Simulation.h"
 #include "FluidParameters.h"
 #include "Vector2f.h"
-#include "ParticleSystem.h"
-#include "PressureSystem.h"
-#include "ColorMap.h"
+#include "Visualization/ParticleSystem.h"
+#include "Visualization/ColorMap.h"
 #include "Boundary.h"
 
 #ifdef TRACY_ENABLED
@@ -16,6 +15,8 @@
 #define SimFrameMark
 
 #endif
+
+constexpr float SCROLL_TICK_RESOLUTION = 1.f / 25.f;
 
 enum State {
     BOUNDARY,
@@ -36,7 +37,16 @@ struct BoundaryData {
     bool creatingBoundary = false;
 };
 
-void handleFluidState(std::optional<sf::Event> event, Simulation& sim);
+struct FluidPlaceData {
+    Vector2f origin;
+    float radius;
+};
+
+void handleFluidState(
+    std::optional<sf::Event> event, 
+    Simulation& sim, 
+    FluidPlaceData& data
+);
 void handleBoundaryState(
     std::optional<sf::Event> event, 
     BoundaryState state,
@@ -62,6 +72,7 @@ void handleCircle(
     std::vector<Boundary>& boundaries,
     BoundaryData& data
 );
+void stopDrawingTemporaryBoundary(BoundaryData& data);
 
 int main(void) {
     constexpr Vector2f downDir(0.f, 1.f);
@@ -140,10 +151,16 @@ int main(void) {
 
     enum State currentState = FLUID;
     enum BoundaryState currentBoundaryType = POLYGON;
+
+    FluidPlaceData fData = {
+        {0.f, 0.f},
+        100.f,
+    };
+    
     std::vector<Boundary> boundaries;
     std::vector<Vector2f> boundaryVertices;
     Boundary temp(boundaryRadius);
-    BoundaryData data = {
+    BoundaryData bData = {
         temp,
         boundaryVertices,
         boundaryRadius,
@@ -157,75 +174,85 @@ int main(void) {
             if (const auto* keyPress = event->getIf<sf::Event::KeyPressed>()) {
                 if (keyPress->scancode == sf::Keyboard::Scan::Num1) {
                     currentState = FLUID;
+                    stopDrawingTemporaryBoundary(bData);
                 } else if (keyPress->scancode == sf::Keyboard::Scan::Num2) {
                     currentState = BOUNDARY;
+                    stopDrawingTemporaryBoundary(bData);
                 } else if (keyPress->scancode == sf::Keyboard::Scan::Num3) {
                     currentBoundaryType = POLYGON;
-                    if (data.creatingBoundary) {
-                        data.boundaryVertices.clear();
-                        data.tempBoundary = Boundary(data.smoothingRadius);
-                        data.creatingBoundary = false;
-                    } 
+                    stopDrawingTemporaryBoundary(bData);
                 } else if (keyPress->scancode == sf::Keyboard::Scan::Num4) {
                     currentBoundaryType = BOX;
-                    if (data.creatingBoundary) {
-                        data.boundaryVertices.clear();
-                        data.tempBoundary = Boundary(data.smoothingRadius);
-                        data.creatingBoundary = false;
-                    } 
+                    stopDrawingTemporaryBoundary(bData);
                 } else if (keyPress->scancode == sf::Keyboard::Scan::Num5) {
                     currentBoundaryType = CIRCLE;
-                    if (data.creatingBoundary) {
-                        data.boundaryVertices.clear();
-                        data.tempBoundary = Boundary(data.smoothingRadius);
-                        data.creatingBoundary = false;
-                    } 
+                    stopDrawingTemporaryBoundary(bData);
                 }
             }
 
             if (currentState == FLUID) {
-                handleFluidState(event, sim);
+                handleFluidState(event, sim, fData);
             } else if (currentState == BOUNDARY) {
-                handleBoundaryState(event, currentBoundaryType, sim, boundaries, data);
+                handleBoundaryState(event, currentBoundaryType, sim, boundaries, bData);
             }
         }
         
+        // Render fluid particles
 		std::vector<Vector2f> pos = sim.getPosition();
 		std::vector<Vector2f> vel = sim.getVelocity();
         const auto d = sim.getDensity();
         particles.update(pos, vel, 0.f, 100.f, ColorMap::viridis);
 
+        // Render all boundaries
         std::vector<Vector2f> boundaryPositions;
         for (const auto b : boundaries) {
             const auto pos = b.getBoundaryParticlePositions();
             boundaryPositions.insert(boundaryPositions.end(), pos.begin(), pos.end());
         }
-        const auto tempPos = data.tempBoundary.getBoundaryParticlePositions();
+        const auto tempPos = bData.tempBoundary.getBoundaryParticlePositions();
         boundaryPositions.insert(boundaryPositions.end(), tempPos.begin(), tempPos.end());
         boundaryParticles.update(boundaryPositions, sf::Color::White);
+
         
         window.clear();
         window.draw(particles);
         window.draw(boundaryParticles);
+        if (currentState == FLUID) {
+            sf::CircleShape c(fData.radius);
+            c.setFillColor(sf::Color::Transparent);
+            c.setOutlineColor(sf::Color::White);
+            c.setOutlineThickness(0.5f);
+            c.setOrigin({fData.radius, fData.radius});
+            c.setPosition({fData.origin.x, fData.origin.y});
+            window.draw(c);
+        }
         window.display();
         sim.update();
         SimFrameMark;
     }
 }
 
-void handleFluidState(std::optional<sf::Event> event, Simulation& sim) {
+void handleFluidState(
+    std::optional<sf::Event> event, 
+    Simulation& sim, 
+    FluidPlaceData& data
+) {
     if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
         if (mouseClick->button == sf::Mouse::Button::Left) {
-            printf("fleft\n");
+            sim.initializeParticleCircle(data.origin, data.radius);
         } else if (mouseClick->button == sf::Mouse::Button::Right) {
             printf("fright\n");
         }
     } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
-        if (scroll->delta > 0.f) {
-            printf("fscroll up\n");
-        } else if (scroll->delta < 0.f) {
-            printf("fscroll down\n");
-        }
+        data.radius += scroll->delta;
+        // Keep radius >= 0
+        data.radius = std::max(0.f, data.radius);
+    } else if (const auto* mouseMove = event->getIf<sf::Event::MouseMoved>()) {
+        // Change where fluid will be affected
+        data.origin = {
+            (float) mouseMove->position.x,
+            (float) mouseMove->position.y
+        };
     }
 }
 
@@ -293,7 +320,7 @@ void handlePolygon(
             data.creatingBoundary = false;
         }
     } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
-        data.compression += scroll->delta / 25.f;
+        data.compression += scroll->delta * SCROLL_TICK_RESOLUTION;
         data.compression = std::clamp(data.compression, 0.f, 1.f);
     
         if (!data.creatingBoundary) return;
@@ -364,7 +391,7 @@ void handleBox(
             data.creatingBoundary = false;
         }
     } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
-        data.compression += scroll->delta / 25.f;
+        data.compression += scroll->delta * SCROLL_TICK_RESOLUTION;
         data.compression = std::clamp(data.compression, 0.f, 1.f);
     
         if (!data.creatingBoundary) return;
@@ -446,7 +473,7 @@ void handleCircle(
             data.creatingBoundary = false;
         }
     } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
-        data.compression += scroll->delta / 25.f;
+        data.compression += scroll->delta * SCROLL_TICK_RESOLUTION;
         data.compression = std::clamp(data.compression, 0.f, 1.f);
     
         if (!data.creatingBoundary) return;
@@ -482,5 +509,12 @@ void handleCircle(
         );
         data.tempBoundary = tempBoundary;
     }
+}
 
+void stopDrawingTemporaryBoundary(BoundaryData& data) {
+    if (data.creatingBoundary) {
+        data.boundaryVertices.clear();
+        data.tempBoundary = Boundary(data.smoothingRadius);
+        data.creatingBoundary = false;
+    } 
 }
