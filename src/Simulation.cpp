@@ -78,6 +78,37 @@ void Simulation::initializeParticleRandom(Vector2f min, Vector2f max, int amount
 	}
 }
 
+void Simulation::initializeParticleCircle(Vector2f origin, float radius) {
+	constexpr float spacingFactor = 1.5f;
+	const float spacing = params.smoothingRadius / spacingFactor;
+
+	const float area = M_PI * radius * radius;
+	
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> jitter(0, spacing);
+	
+	const float sqRadius = radius * radius;
+	int amount = 0;
+	// Calculate only for a quarter circle
+	for (float x = 0; x < radius; x += spacing) {
+		const float xSq = x * x;
+		for (float y = 0; y < radius; y += spacing) {
+			if (xSq + y * y > sqRadius) continue;
+			const Vector2f point = {
+				origin.x + jitter(gen),
+				origin.y + jitter(gen)
+			};
+			position.push_back({point.x + x, point.y + y});
+			position.push_back({point.x - x, point.y + y});
+			position.push_back({point.x - x, point.y - y});
+			position.push_back({point.x + x, point.y - y});
+			amount += 4;
+		}
+	}
+	initializeParticleValues(amount);
+}
+
 void Simulation::addBoundary(Boundary b) {
 	const auto pos = b.getBoundaryParticlePositions();
 	const auto vol = b.getBoundaryParticleVolume(); 

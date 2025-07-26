@@ -38,6 +38,7 @@ class Simulation {
 		float getPressureAtPoint(const Vector2f pos);
 		void initializeParticleGrid(Vector2f center, int gridWidth, int amount);
 		void initializeParticleRandom(Vector2f min, Vector2f max, int amount);
+		void initializeParticleCircle(Vector2f origin, float radius);
 		void addBoundary(Boundary b);
 		void addBoundary(std::vector<Boundary> b);
 
