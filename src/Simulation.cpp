@@ -27,17 +27,12 @@ void Simulation::initializeParticleValues(int amount) {
 
 	numParticles += amount;
 	position.reserve(numParticles);
-	velocity.resize(numParticles);
-	mass.resize(numParticles);
-	density.resize(numParticles);
-	pressure.resize(numParticles);
+	velocity.resize(numParticles, {0.f, 0.f});
+	mass.resize(numParticles, particleMass);
+	density.resize(numParticles, params.restDensity);
+	pressure.resize(numParticles, 0.f);
 	neighbors.resize(numParticles);
 	boundaryNeighbors.resize(numParticles);
-	
-	std::fill(velocity.begin(), velocity.end(), Vector2f(0.f, 0.f));
-	std::fill(mass.begin(), mass.end(), particleMass);
-	std::fill(density.begin(), density.end(), params.restDensity);
-	std::fill(pressure.begin(), pressure.end(), 0.f);
 }
 
 void Simulation::initializeParticleGrid(Vector2f center, int gridWidth, int amount) {
@@ -260,8 +255,9 @@ void Simulation::applyPressureForce(float dt) {
 				boundaryStartIndex.end(),
 				k
 			);
+			const int prevIndex = std::distance(boundaryStartIndex.begin(), boundaryUpper) - 1;
 			// Accumulate force for k's boundary object
-			boundaryForce[*(boundaryUpper - 1)] += mass[i] * p_rho * boundaryMass * grad;
+			boundaryForce[prevIndex] += mass[i] * p_rho * boundaryMass * grad;
 		}
 		forces[i] -= mass[i] * p_rho * sum;
 	}
@@ -483,7 +479,7 @@ Vector2f Simulation::poly6Gradient(Vector2f r, float smoothingLength) {
 
 Vector2f Simulation::spikyGradient(Vector2f r, float smoothingLength) {
 	const float sqDist = r.dot(r);
-	if (sqDist < 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
+	if (sqDist <= 0 || sqDist > params.sqSmoothingRadius) return Vector2f(0.f, 0.f);
 	const float dist = sqrt(sqDist);
 	const float factor = smoothingLength - dist;
 	return spikyGC * factor * factor * r / dist;
