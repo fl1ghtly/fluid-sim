@@ -29,13 +29,34 @@ enum BoundaryState {
 };
 
 struct BoundaryData {
+    Boundary& tempBoundary;
     std::vector<Vector2f>& boundaryVertices;
     float smoothingRadius;
     float compression;
+    bool creatingBoundary = false;
 };
 
 void handleFluidState(std::optional<sf::Event> event, Simulation& sim);
 void handleBoundaryState(
+    std::optional<sf::Event> event, 
+    BoundaryState state,
+    Simulation& sim, 
+    std::vector<Boundary>& boundaries,
+    BoundaryData& data
+);
+void handlePolygon(
+    std::optional<sf::Event> event, 
+    Simulation& sim, 
+    std::vector<Boundary>& boundaries,
+    BoundaryData& data
+);
+void handleBox(
+    std::optional<sf::Event> event, 
+    Simulation& sim, 
+    std::vector<Boundary>& boundaries,
+    BoundaryData& data
+);
+void handleCircle(
     std::optional<sf::Event> event, 
     Simulation& sim, 
     std::vector<Boundary>& boundaries,
@@ -121,10 +142,12 @@ int main(void) {
     enum BoundaryState currentBoundaryType = POLYGON;
     std::vector<Boundary> boundaries;
     std::vector<Vector2f> boundaryVertices;
+    Boundary temp(boundaryRadius);
     BoundaryData data = {
+        temp,
         boundaryVertices,
         boundaryRadius,
-        1.f
+        1.f,
     };
 
     while (window.isOpen()) {
@@ -136,13 +159,34 @@ int main(void) {
                     currentState = FLUID;
                 } else if (keyPress->scancode == sf::Keyboard::Scan::Num2) {
                     currentState = BOUNDARY;
+                } else if (keyPress->scancode == sf::Keyboard::Scan::Num3) {
+                    currentBoundaryType = POLYGON;
+                    if (data.creatingBoundary) {
+                        data.boundaryVertices.clear();
+                        data.tempBoundary = Boundary(data.smoothingRadius);
+                        data.creatingBoundary = false;
+                    } 
+                } else if (keyPress->scancode == sf::Keyboard::Scan::Num4) {
+                    currentBoundaryType = BOX;
+                    if (data.creatingBoundary) {
+                        data.boundaryVertices.clear();
+                        data.tempBoundary = Boundary(data.smoothingRadius);
+                        data.creatingBoundary = false;
+                    } 
+                } else if (keyPress->scancode == sf::Keyboard::Scan::Num5) {
+                    currentBoundaryType = CIRCLE;
+                    if (data.creatingBoundary) {
+                        data.boundaryVertices.clear();
+                        data.tempBoundary = Boundary(data.smoothingRadius);
+                        data.creatingBoundary = false;
+                    } 
                 }
             }
 
             if (currentState == FLUID) {
                 handleFluidState(event, sim);
             } else if (currentState == BOUNDARY) {
-                handleBoundaryState(event, sim, boundaries, data);
+                handleBoundaryState(event, currentBoundaryType, sim, boundaries, data);
             }
         }
         
@@ -156,6 +200,8 @@ int main(void) {
             const auto pos = b.getBoundaryParticlePositions();
             boundaryPositions.insert(boundaryPositions.end(), pos.begin(), pos.end());
         }
+        const auto tempPos = data.tempBoundary.getBoundaryParticlePositions();
+        boundaryPositions.insert(boundaryPositions.end(), tempPos.begin(), tempPos.end());
         boundaryParticles.update(boundaryPositions, sf::Color::White);
         
         window.clear();
@@ -185,28 +231,52 @@ void handleFluidState(std::optional<sf::Event> event, Simulation& sim) {
 
 void handleBoundaryState(
     std::optional<sf::Event> event, 
+    BoundaryState state,
+    Simulation& sim, 
+    std::vector<Boundary>& boundaries,
+    BoundaryData& data
+) {
+    switch (state)
+    {
+        case POLYGON:
+            handlePolygon(event, sim, boundaries, data);
+            break;
+        case BOX:
+            handleBox(event, sim, boundaries, data);
+            break;
+        case CIRCLE:
+            handleCircle(event, sim, boundaries, data);
+            break;
+    }
+}
+
+void handlePolygon(
+    std::optional<sf::Event> event, 
     Simulation& sim, 
     std::vector<Boundary>& boundaries,
     BoundaryData& data
 ) {
     if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
         if (mouseClick->button == sf::Mouse::Button::Left) {
-            // To stop the current vertex from being modified further, push a new one
+            // Save current mouse position
             const Vector2f newVertPos = {
                 (float) mouseClick->position.x, 
                 (float) mouseClick->position.y
             };
-
+            
             // If this is the first vertex, we need to save it first
-            if (data.boundaryVertices.empty()) data.boundaryVertices.push_back(newVertPos);
-
+            if (!data.creatingBoundary) {
+                data.boundaryVertices.push_back(newVertPos);
+                data.creatingBoundary = true;
+            }
+    
             // Add a temporary vertex to be modified, at the same position
             data.boundaryVertices.push_back(newVertPos);
-        } else if (mouseClick->button == sf::Mouse::Button::Right) {
+        } else if (mouseClick->button == sf::Mouse::Button::Right && data.creatingBoundary) {
             // Remove the temporary vertex and boundary
             data.boundaryVertices.pop_back();
-            boundaries.pop_back();
-
+            data.tempBoundary = Boundary(data.smoothingRadius);
+    
             // Create the boundary to be saved
             Boundary b(data.smoothingRadius);
             b.createPolygon(data.boundaryVertices, data.compression);
@@ -218,22 +288,23 @@ void handleBoundaryState(
             
             // Append a new boundary to be modified instead of current
             boundaries.push_back(b);
-
+    
             data.boundaryVertices.clear();
+            data.creatingBoundary = false;
         }
     } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
         data.compression += scroll->delta / 25.f;
         data.compression = std::clamp(data.compression, 0.f, 1.f);
-
-        if (boundaries.empty()) return;
-
+    
+        if (!data.creatingBoundary) return;
+    
         // Update the compression by creating a new boundary
         Boundary tempBoundary(data.smoothingRadius);
         tempBoundary.createPolygon(data.boundaryVertices, data.compression);
-        boundaries.back() = tempBoundary;
+        data.tempBoundary = tempBoundary;
     } else if (const auto* mouseMove = event->getIf<sf::Event::MouseMoved>()) {
-        if (data.boundaryVertices.empty()) return;
-
+        if (!data.creatingBoundary) return;
+    
         // Modify the last vertex position when mouse moves
         auto& lastVert = data.boundaryVertices.back();
         lastVert = {
@@ -244,11 +315,172 @@ void handleBoundaryState(
         // Create a temporary boundary to draw current vertices
         Boundary tempBoundary(data.smoothingRadius);
         tempBoundary.createPolygon(data.boundaryVertices, data.compression);
-
-        if (boundaries.empty()) {
-            boundaries.push_back(tempBoundary);
-        } else {
-            boundaries.back() = tempBoundary;
-        }
+        data.tempBoundary = tempBoundary;
     }
+}
+
+void handleBox(
+    std::optional<sf::Event> event, 
+    Simulation& sim, 
+    std::vector<Boundary>& boundaries,
+    BoundaryData& data
+) {
+    if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
+        if (mouseClick->button == sf::Mouse::Button::Left) {
+            // Save vertex position on left click
+            const Vector2f newVertPos = {
+                (float) mouseClick->position.x, 
+                (float) mouseClick->position.y
+            };
+            data.boundaryVertices.push_back(newVertPos);
+            
+            // Check if creating a new boundary
+            if (!data.creatingBoundary) {
+                data.creatingBoundary = true;
+                return;
+            }
+            
+            // Already creating boundary, therefore this is the second vertex
+            // and we can create the box
+            Boundary b(data.smoothingRadius);
+            b.createBox(
+                data.boundaryVertices[0], 
+                data.boundaryVertices[1], 
+                data.compression
+            );
+
+            // Remove temp boundary
+            data.tempBoundary = Boundary(data.smoothingRadius);
+
+            b.activateBoundary();
+            sim.addBoundary(b);
+            boundaries.push_back(b);
+            data.boundaryVertices.clear();
+            data.creatingBoundary = false;
+        } else if (mouseClick->button == sf::Mouse::Button::Right) {
+            // Cancel creation of box boundary
+            data.boundaryVertices.clear();
+            data.tempBoundary = Boundary(data.smoothingRadius);
+            data.creatingBoundary = false;
+        }
+    } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
+        data.compression += scroll->delta / 25.f;
+        data.compression = std::clamp(data.compression, 0.f, 1.f);
+    
+        if (!data.creatingBoundary) return;
+
+        const Vector2f lastVert = {
+            (float) scroll->position.x, 
+            (float) scroll->position.y
+        };
+
+        // Update the compression by creating a new boundary
+        Boundary tempBoundary(data.smoothingRadius);
+        tempBoundary.createBox(
+            data.boundaryVertices[0], 
+            lastVert,
+            data.compression
+        );
+        data.tempBoundary = tempBoundary;
+    } else if (const auto* mouseMove = event->getIf<sf::Event::MouseMoved>()) {
+        if (!data.creatingBoundary) return;
+    
+        // Modify the last vertex position when mouse moves
+        const Vector2f lastVert = {
+            (float) mouseMove->position.x, 
+            (float) mouseMove->position.y
+        };
+        
+        // Create a temporary boundary to draw current vertices
+        Boundary tempBoundary(data.smoothingRadius);
+        tempBoundary.createBox(
+            data.boundaryVertices[0], 
+            lastVert, 
+            data.compression
+        );
+        data.tempBoundary = tempBoundary;
+    }
+}
+
+void handleCircle(
+    std::optional<sf::Event> event, 
+    Simulation& sim, 
+    std::vector<Boundary>& boundaries,
+    BoundaryData& data
+) {
+    if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
+        if (mouseClick->button == sf::Mouse::Button::Left) {
+            const Vector2f newVertPos = {
+                (float) mouseClick->position.x, 
+                (float) mouseClick->position.y
+            };
+            
+            // Check if creating a new boundary
+            if (!data.creatingBoundary) {
+                // Save only 1 vertex position for circle
+                data.boundaryVertices.push_back(newVertPos);
+                data.creatingBoundary = true;
+                return;
+            }
+    
+            // Already creating boundary, therefore we finish and save circle boundary
+            Boundary b(data.smoothingRadius);
+            b.createCircle(
+                data.boundaryVertices[0], 
+                (newVertPos - data.boundaryVertices[0]).magnitude(), 
+                data.compression
+            );
+            
+            // Remove temporary boundary
+            data.tempBoundary = Boundary(data.smoothingRadius);
+
+            b.activateBoundary();
+            sim.addBoundary(b);
+            boundaries.push_back(b);
+            data.boundaryVertices.clear();
+            data.creatingBoundary = false;
+        } else if (mouseClick->button == sf::Mouse::Button::Right) {
+            // Cancel creation of boundary
+            data.boundaryVertices.clear();
+            data.tempBoundary = Boundary(data.smoothingRadius);
+            data.creatingBoundary = false;
+        }
+    } else if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
+        data.compression += scroll->delta / 25.f;
+        data.compression = std::clamp(data.compression, 0.f, 1.f);
+    
+        if (!data.creatingBoundary) return;
+    
+        const Vector2f lastVert = {
+            (float) scroll->position.x, 
+            (float) scroll->position.y
+        };
+    
+        // Update the compression by creating a new boundary
+        Boundary tempBoundary(data.smoothingRadius);
+        tempBoundary.createCircle(
+            data.boundaryVertices[0], 
+            (lastVert - data.boundaryVertices[0]).magnitude(),
+            data.compression
+        );
+        data.tempBoundary = tempBoundary;
+    } else if (const auto* mouseMove = event->getIf<sf::Event::MouseMoved>()) {
+        if (!data.creatingBoundary) return;
+    
+        // Modify the last vertex position when mouse moves
+        const Vector2f lastVert = {
+            (float) mouseMove->position.x, 
+            (float) mouseMove->position.y
+        };
+        
+        // Create a temporary boundary to draw current vertices
+        Boundary tempBoundary(data.smoothingRadius);
+        tempBoundary.createCircle(
+            data.boundaryVertices[0], 
+            (lastVert - data.boundaryVertices[0]).magnitude(), 
+            data.compression
+        );
+        data.tempBoundary = tempBoundary;
+    }
+
 }
