@@ -9,6 +9,14 @@ Static rigidbody-fluid interactions are modeled from the methodology of Akinci e
 ### Running
 A sandbox and visual demo executable is available in the releases tab.
 
+### Sandbox Controls
+| Key | Function     | Key | Function |
+| --- | ------------ | --- | -------- |
+| Q | Add Fluid | E | Add Boundary |
+| 1 | Switch to Velocity | Z | Switch to Polygon Boundary |
+| 2 | Switch to Density | X | Switch to Box Boundary |
+| 3 | Switch to Pressure | C | Switch to Circle Boundary |
+
 ## Getting Started
 
 ### Prerequisites
