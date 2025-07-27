@@ -1,8 +1,10 @@
 # Fluid Simulation
 
-An implementation of the Smoothed Particle Hydronamics (SPH) Algorithm as described by Ihmsen et al and Müller et al. [\[1](#1), [3\]](#3).
+An implementation of the Smoothed Particle Hydronamics (SPH) Algorithm as described by Ihmsen et al and Müller et al. \[[1](#1), [3](#3)\].
 
 Static rigidbody-fluid interactions are modeled from the methodology of Akinci et al. [[2]](#2)
+![demo](https://github.com/user-attachments/assets/3bf499e3-486a-4c4d-8b21-37b362a4ea97)
+
 
 ### Running
 A sandbox and visual demo executable is available in the releases tab.
