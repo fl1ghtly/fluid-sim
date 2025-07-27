@@ -38,7 +38,7 @@ int main(void) {
         smoothingRadius
     );
 
-	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Simulation Simulation");
+	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation Demo");
     window.setFramerateLimit(144);
     
 	Simulation sim(width, height, params, downDir, -1.f);

@@ -111,7 +111,7 @@ int main(void) {
     PressureSystem pressureGradient(width, height, GRID_SIZE);
     */
 
-	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Simulation Simulation");
+	auto window = sf::RenderWindow(sf::VideoMode({width, height}), "Fluid Simulation Sandbox");
     window.setFramerateLimit(144);
     
 	Simulation sim(width, height, params, downDir);
