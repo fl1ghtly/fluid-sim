@@ -59,7 +59,9 @@ target_link_libraries(YOUR_TARGET PRIVATE
 ## References
 <a id="1">[1]</a>
 Ihmsen, M., Orthmann, J., Solenthaler, B., Kolb, A., & Teschner, M. (2014). SPH fluids in computer graphics. https://doi.org/10.2312/egst.20141034
+
 <a id="2">[2]</a>
 Akinci, N., Ihmsen, M., Akinci, G., Solenthaler, B., & Teschner, M. (2012). Versatile rigid-fluid coupling for incompressible SPH. ACM Transactions on Graphics (TOG), 31(4), 1-8. https://dl.acm.org/doi/10.1145/2185520.2185558
+
 <a id="3">[3]</a>
 Müller, M., Charypar, D., & Gross, M. (2003). Particle-based fluid simulation for interactive applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics symposium on Computer animation (pp. 154-159). https://dl.acm.org/doi/10.5555/846276.846298
