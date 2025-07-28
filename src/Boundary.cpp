@@ -69,32 +69,48 @@ void Boundary::createPolygon(std::vector<Vector2f> vertices, float compression) 
 	centerOfMass /= static_cast<float>(vertices.size());
 }
 
-void Boundary::createBox(Vector2f topLeft, Vector2f bottomRight, float compression) {
+void Boundary::createBox(Vector2f corner1, Vector2f corner2, float compression) {
 	const float particleSpacing = 1.f / compression;
 	// Only care about magnitude of width/height
-	const float width = bottomRight.x - topLeft.x;
-	const float height = bottomRight.y - topLeft.y;
+	const float width = std::fabs(corner2.x - corner1.x);
+	const float height = std::fabs(corner2.y - corner1.y);
 	
 	// Get amount of particles in the x and y direction
 	const float widthParticles = std::floor(width / particleSpacing) + 1.f;
 	const float heightParticles = std::floor(height / particleSpacing) + 1.f;
-	
+
+	// Calculate direction of line depending the relative position of the corners
+	const float widthDir = (corner1.x < corner2.x) ? 1.f : -1.f;
+	const float heightDir = (corner1.y < corner2.y) ? 1.f : -1.f;
+
 	// Construct top and bottom of box
 	for (float i = 0.f; i < widthParticles; i++) {
-		const Vector2f top = {topLeft.x + particleSpacing * i, topLeft.y};
-		const Vector2f bottom = {topLeft.x + particleSpacing * i, bottomRight.y};
+		const Vector2f top = {
+			corner1.x + particleSpacing * i  * widthDir, 
+			corner1.y
+		};
+		const Vector2f bottom = {
+			corner1.x + particleSpacing * i * widthDir, 
+			corner2.y
+		};
 		particlePos.push_back(top);
 		particlePos.push_back(bottom);
 	}
 
 	// Construct left and right of box
 	for (float i = 0.f; i < heightParticles; i++) {
-		const Vector2f left = {topLeft.x, topLeft.y + particleSpacing * i};
-		const Vector2f right = {bottomRight.x, topLeft.y + particleSpacing * i};
+		const Vector2f left = {
+			corner1.x, 
+			corner1.y + particleSpacing * i * heightDir
+		};
+		const Vector2f right = {
+			corner2.x, 
+			corner1.y + particleSpacing * i * heightDir
+		};
 		particlePos.push_back(left);
 		particlePos.push_back(right);
 	}
-	centerOfMass = {topLeft.x + width / 2.f, topLeft.y + height / 2.f};
+	centerOfMass = {corner1.x + width / 2.f, corner1.y + height / 2.f};
 }
 
 void Boundary::createCircle(Vector2f origin, float radius, float compression) {
