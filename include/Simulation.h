@@ -25,8 +25,8 @@
 class Simulation {
 	public:
 		Simulation(
-			int width, 
-			int heigh, 
+			float width, 
+			float heigh, 
 			FluidParameters& params, 
 			Vector2f downDir={0.f, 1.f}, 
 			float fixedTimestep=1E-2f
@@ -36,17 +36,17 @@ class Simulation {
 		std::vector<Vector2f> getVelocity();
 		std::vector<float> getPressure();
 		std::vector<float> getDensity();
-		int getNumParticles();
+		std::size_t getNumParticles();
 		void setDownDirection(Vector2f d);
 		float getPressureAtPoint(const Vector2f pos);
-		void initializeParticleGrid(Vector2f center, int gridWidth, int amount);
-		void initializeParticleRandom(Vector2f min, Vector2f max, int amount);
+		void initializeParticleGrid(Vector2f center, std::size_t gridWidth, std::size_t amount);
+		void initializeParticleRandom(Vector2f min, Vector2f max, std::size_t amount);
 		void initializeParticleCircle(Vector2f origin, float radius);
 		void addBoundary(Boundary b);
 		void addBoundary(std::vector<Boundary> b);
 
 	private:
-		void initializeParticleValues(int amount);
+		void initializeParticleValues(std::size_t amount);
 		void calculateDensity(float dt);
 		void calculatePressure();
 		void applyNonPressureForce(float dt);
@@ -62,10 +62,10 @@ class Simulation {
 		Vector2f spikyGradient(Vector2f r, float smoothingLength);
 		float viscosityLaplacian(float dist, float smoothingLength);
 
-		int width;
-		int height;
+		float width;
+		float height;
 		int currentStep;
-		int numParticles;
+		std::size_t numParticles;
 		FluidParameters& params;
 		Vector2f downDir;
 		float fixedTimestep;
@@ -74,14 +74,14 @@ class Simulation {
 		std::vector<float> mass;
 		std::vector<float> density;
 		std::vector<float> pressure;
-		Hashmap<GridCell, std::vector<int>>* spatialGrid;
-		std::vector<std::vector<int>> neighbors;
+		Hashmap<GridCell, std::vector<std::size_t>>* spatialGrid;
+		std::vector<std::vector<std::size_t>> neighbors;
 		std::vector<Boundary> boundaries;
 		std::vector<Vector2f> boundaryPos;
 		std::vector<float> boundaryVolume;
-		std::vector<int> boundaryStartIndex;
+		std::vector<std::size_t> boundaryStartIndex;
 		std::vector<Vector2f> boundaryForce;
-		Hashmap<GridCell, std::vector<int>>* boundarySpatialGrid;
-		std::vector<std::vector<int>> boundaryNeighbors;
+		Hashmap<GridCell, std::vector<std::size_t>>* boundarySpatialGrid;
+		std::vector<std::vector<std::size_t>> boundaryNeighbors;
 		float poly6C, spikyGC, viscosityLC;
 };

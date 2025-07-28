@@ -21,6 +21,22 @@ add_library(FluidSimulation
     src/Boundary.cpp
 )
 
+set(GCC_CLANG_WARNINGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wconversion
+    -Wunused
+    -Wsign-conversion
+)
+
+target_compile_options(FluidSimulation PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
+        ${GCC_CLANG_WARNINGS}
+    >
+)
+
 if(PROJECT_IS_TOP_LEVEL)
     add_subdirectory(apps EXCLUDE_FROM_ALL)
 endif()

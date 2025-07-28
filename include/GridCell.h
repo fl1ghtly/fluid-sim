@@ -4,13 +4,13 @@
 
 struct GridCell {
 	public:
-		int x, y;
-		unsigned int zOrder;
+		std::size_t x, y;
+		std::size_t zOrder;
 		float cellSize;
 
-		GridCell(float x, float y, float cellSize);
-		GridCell(int x, int y, float cellSize);
-		GridCell(Vector2f pos, float cellSize);
+		GridCell(float x, float y, float cellSize, Vector2f min={0.f, 0.f});
+		GridCell(int x, int y, float cellSize, Vector2f min={0.f, 0.f});
+		GridCell(Vector2f pos, float cellSize, Vector2f min={0.f, 0.f});
 		bool operator==(const GridCell& other) const; 
 	private:
 		void calculateZOrder();

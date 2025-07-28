@@ -22,21 +22,21 @@ class Boundary {
 		void createCircle(Vector2f origin, float radius, float compression=1.f);
 		void activateBoundary();
 		void applyForceAndTorque(Vector2f force, float dt);
-		int getNumBoundaryParticles() const;
+		std::size_t getNumBoundaryParticles() const;
 		std::vector<Vector2f> getBoundaryParticlePositions() const;
 		std::vector<float> getBoundaryParticleVolume() const;
 		Vector2f getCenterPosition() const;
 		
 	private:
-		float boundaryMass;
 		float smoothingRadius;
+		float boundaryMass;
 		bool isStatic;
 		Vector2f boundaryVel;
 		Vector2f centerOfMass;
 		std::vector<Vector2f> particlePos;
 		std::vector<float> particleVolume;
-		Hashmap<GridCell, std::vector<int>>* spatialGrid;
-		std::vector<std::vector<int>> neighbors;
+		Hashmap<GridCell, std::vector<std::size_t>>* spatialGrid;
+		std::vector<std::vector<std::size_t>> neighbors;
 
 		void calculateParticleVolume();
 		void synchronizeBoundaryParticles(float dt);
