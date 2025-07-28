@@ -43,6 +43,7 @@ to get the library, sandbox, or demo binaries respectively.
 ## Usage
 To import and use this project for yourself add the following to your CMakeList.txt file.
 ```CMake
+include(FetchContent)
 FetchContent_Declare(FluidSimulation
     GIT_REPOSITORY https://github.com/fl1ghtly/fluid-sim.git
     GIT_TAG 1.0.0
