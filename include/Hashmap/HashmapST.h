@@ -18,7 +18,8 @@ class HashmapST : public Hashmap<Key, Value> {
 		}
 
 		Value get(Key k) const override {
-			return m[k];
+			auto it = m.find(k);
+			return (it != m.end()) ? it->second : Value();
 		}
 
 		bool find(Key k) override {

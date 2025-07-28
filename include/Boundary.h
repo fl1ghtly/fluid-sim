@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <vector>
 #include "Vector2f.h"
 #include "GridCell.h"

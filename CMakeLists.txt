@@ -10,7 +10,7 @@ include(GNUInstallDirs)
 find_package(OpenMP)
 find_package(TBB)
 
-set(ENABLE_MULTIPROCESSING "Enable multiprocessing support" ON)
+option(ENABLE_MULTIPROCESSING "Enable multiprocessing support" ON)
 
 # Create library
 add_library(FluidSimulation 
