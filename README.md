@@ -20,14 +20,15 @@ A sandbox and visual demo executable is available in the releases tab.
 ## Getting Started
 
 ### Prerequisites
-Before building this repository, make sure to have the following installed.
+Before building this repository, make sure to have the following installed or available for best performance.
 * [CMake](https://cmake.org/)
 * [oneTBB](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html)
+* OpenMP
 
 ### Building
 To build, download the repository and run either 
 ```bash
-cmake --build build --target all
+cmake --build build --target FluidSimulation
 ```
 
 ```bash
@@ -46,7 +47,7 @@ To import and use this project for yourself add the following to your CMakeList.
 include(FetchContent)
 FetchContent_Declare(FluidSimulation
     GIT_REPOSITORY https://github.com/fl1ghtly/fluid-sim.git
-    GIT_TAG 1.0.0
+    GIT_TAG 1.1.0
     GIT_SHALLOW ON
     EXCLUDE_FROM_ALL
 )
