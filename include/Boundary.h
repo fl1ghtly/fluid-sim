@@ -1,8 +1,13 @@
 #pragma once
 #include <vector>
-#include <oneapi/tbb/concurrent_hash_map.h>
 #include "Vector2f.h"
 #include "GridCell.h"
+
+#ifdef MULTIPROCESSING_ENABLED
+#include "Hashmap/HashmapMP.h"
+#else
+#include "Hashmap/HashmapST.h"
+#endif
 
 class Boundary {
 	public:
@@ -30,7 +35,7 @@ class Boundary {
 		Vector2f centerOfMass;
 		std::vector<Vector2f> particlePos;
 		std::vector<float> particleVolume;
-		tbb::concurrent_hash_map<GridCell, std::vector<int>> spatialGrid;
+		Hashmap<GridCell, std::vector<int>>* spatialGrid;
 		std::vector<std::vector<int>> neighbors;
 
 		void calculateParticleVolume();

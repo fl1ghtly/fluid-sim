@@ -4,6 +4,7 @@ Boundary::Boundary(float smoothingRadius) : smoothingRadius(smoothingRadius) {
 	boundaryMass = INFINITY;
 	isStatic = true;
 	boundaryVel = {0.f, 0.f};
+	spatialGrid = createHashmap<GridCell, std::vector<int>>();
 }
 
 Boundary::Boundary(
@@ -14,6 +15,7 @@ Boundary::Boundary(
 boundaryMass(mass),
 boundaryVel(initialVel) {
 	isStatic = false;
+	spatialGrid = createHashmap<GridCell, std::vector<int>>();
 }
 
 void Boundary::applyForceAndTorque(Vector2f force, float dt) {
@@ -137,17 +139,16 @@ void Boundary::buildSpatialGrid() {
 	// Cell Size = Kernel Support Length is optimal
 	const float cellSize = smoothingRadius;
 
-	spatialGrid.clear();
+	spatialGrid->clear();
 	#pragma omp parallel for
 	for (int i = 0; i < particlePos.size(); i++) {
 		GridCell c = {particlePos[i], cellSize};
-		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
-		if (spatialGrid.insert(a, c)) {
-			a->second = {i};
+		if (spatialGrid->find(c)) {
+			#pragma omp critical
+			spatialGrid->get(c).push_back(i);
 		} else {
-			a->second.push_back(i);
+			spatialGrid->insert(c, {i});
 		}
-		a.release();
 	}
 }
 
@@ -163,11 +164,7 @@ void Boundary::findNeighbors() {
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
 				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
-				std::vector<int> cellIndices;
-				{
-					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
-					if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
-				}
+				const std::vector<int> cellIndices = spatialGrid->get(cell);
 
 				for (auto neighbor : cellIndices) {
 					const Vector2f rij = particlePos[i] - particlePos[neighbor];
