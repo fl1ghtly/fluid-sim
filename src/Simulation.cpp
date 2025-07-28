@@ -19,6 +19,8 @@ Simulation::Simulation(
 	poly6C = 4 / (M_PI * pow(params.smoothingRadius, 8.f));
 	spikyGC = -30.f / (M_PI * pow(params.smoothingRadius, 5.f));
 	viscosityLC = 40.f / (M_PI * pow(params.smoothingRadius, 5.f));
+	spatialGrid = createHashmap<GridCell, std::vector<int>>();
+	boundarySpatialGrid = createHashmap<GridCell, std::vector<int>>();
 }
 
 void Simulation::initializeParticleValues(int amount) {
@@ -314,31 +316,29 @@ void Simulation::buildSpatialGrid() {
 	const float cellSize = params.smoothingRadius;
 
 	// Build spatial grid for fluid particles
-	spatialGrid.clear();
+	spatialGrid->clear();
 	#pragma omp parallel for
 	for (int i = 0; i < numParticles; i++) {
 		GridCell c = {position[i], cellSize};
-		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
-		if (spatialGrid.insert(a, c)) {
-			a->second = {i};
+		if (spatialGrid->find(c)) {
+			#pragma omp critical
+			spatialGrid->get(c).push_back(i);
 		} else {
-			a->second.push_back(i);
+			spatialGrid->insert(c, {i});
 		}
-		a.release();
 	}
 	
 	// Build spatial grid for boundary particles
-	boundarySpatialGrid.clear();
+	boundarySpatialGrid->clear();
 	#pragma omp parallel for
 	for (int i = 0; i < boundaryPos.size(); i++) {
 		GridCell c = {boundaryPos[i], cellSize};
-		tbb::concurrent_hash_map<GridCell, std::vector<int>>::accessor a;
-		if (boundarySpatialGrid.insert(a, c)) {
-			a->second = {i};
+		if (boundarySpatialGrid->find(c)) {
+			#pragma omp critical
+			boundarySpatialGrid->get(c).push_back(i);
 		} else {
-			a->second.push_back(i);
+			boundarySpatialGrid->insert(c, {i});
 		}
-		a.release();
 	}
 }
 
@@ -361,17 +361,9 @@ void Simulation::findNeighbors() {
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
 				const GridCell cell = {center.x + dx, center.y + dy, cellSize};
-				std::vector<int> cellIndices;
-				std::vector<int> boundaryCellIndices;
-				{
-					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
-					if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
-				}
-				{
-					tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
-					if (boundarySpatialGrid.find(ca, cell)) boundaryCellIndices = ca->second;
-				}
-
+				const std::vector<int> cellIndices = spatialGrid->get(cell);
+				const std::vector<int> boundaryCellIndices = boundarySpatialGrid->get(cell);
+				
 				for (const auto neighbor : cellIndices) {
 					const Vector2f rij = position[i] - position[neighbor];
 					const float sqDist = rij.dot(rij);
@@ -450,11 +442,7 @@ float Simulation::getPressureAtPoint(const Vector2f point) {
 	for (int dx = -1; dx <= 1; dx++) {
 		for (int dy = -1; dy <= 1; dy++) {
 			GridCell cell = {center.x + dx, center.y + dy, cellSize};
-			std::vector<int> cellIndices;
-			{
-				tbb::concurrent_hash_map<GridCell, std::vector<int>>::const_accessor ca;
-				if (spatialGrid.find(ca, cell)) cellIndices = ca->second;
-			}
+			std::vector<int> cellIndices = spatialGrid->get(cell);
 
 			for (auto neighbor : cellIndices) {
 				p += pressure[neighbor];			

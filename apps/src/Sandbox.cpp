@@ -318,7 +318,7 @@ void handlePolygon(
             boundaries.push_back(b);
             
             // Append a new boundary to be modified instead of current
-            boundaries.push_back(b);
+            // boundaries.push_back(b);
     
             data.boundaryVertices.clear();
             data.creatingBoundary = false;

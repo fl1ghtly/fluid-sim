@@ -8,7 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(GNUInstallDirs)
 
 find_package(OpenMP)
-find_package(TBB REQUIRED)
+find_package(TBB)
+
+set(ENABLE_MULTIPROCESSING "Enable multiprocessing support" ON)
 
 # Create library
 add_library(FluidSimulation 
@@ -29,10 +31,11 @@ target_include_directories(FluidSimulation PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(FluidSimulation PRIVATE TBB::tbb)
-
-if(OpenMP_CXX_FOUND)
-target_link_libraries(FluidSimulation PRIVATE OpenMP::OpenMP_CXX)
+# Add multiprocessing support if packages are found
+if(OpenMP_CXX_FOUND AND TBB_FOUND AND ENABLE_MULTIPROCESSING)
+    target_compile_definitions(FluidSimulation PRIVATE MULTIPROCESSING_ENABLED)
+    target_link_libraries(FluidSimulation PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(FluidSimulation PRIVATE TBB::tbb)
 endif()
 
 # Create targets to export

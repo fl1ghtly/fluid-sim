@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <random>
 #include <ranges>
-#include <oneapi/tbb/concurrent_hash_map.h>
 #include "Vector2f.h"
 #include "GridCell.h"
 #include "FluidParameters.h"
@@ -13,10 +12,14 @@
 #ifdef TRACY_ENABLED
 #include <tracy/Tracy.hpp>
 #define SimZoneScoped ZoneScoped
-
 #else
 #define SimZoneScoped
+#endif
 
+#ifdef MULTIPROCESSING_ENABLED
+#include "Hashmap/HashmapMP.h"
+#else
+#include "Hashmap/HashmapST.h"
 #endif
 
 class Simulation {
@@ -71,14 +74,14 @@ class Simulation {
 		std::vector<float> mass;
 		std::vector<float> density;
 		std::vector<float> pressure;
-		tbb::concurrent_hash_map<GridCell, std::vector<int>> spatialGrid;
+		Hashmap<GridCell, std::vector<int>>* spatialGrid;
 		std::vector<std::vector<int>> neighbors;
 		std::vector<Boundary> boundaries;
 		std::vector<Vector2f> boundaryPos;
 		std::vector<float> boundaryVolume;
 		std::vector<int> boundaryStartIndex;
 		std::vector<Vector2f> boundaryForce;
-		tbb::concurrent_hash_map<GridCell, std::vector<int>> boundarySpatialGrid;
+		Hashmap<GridCell, std::vector<int>>* boundarySpatialGrid;
 		std::vector<std::vector<int>> boundaryNeighbors;
 		float poly6C, spikyGC, viscosityLC;
 };
